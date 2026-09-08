@@ -17,14 +17,45 @@ import {
   http as viemHttp,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { sepolia } from "viem/chains";
+import { mainnet, sepolia } from "viem/chains";
 import { loadPoolAllowlist, validateRelayRequest } from "./allowlist.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.resolve(__dirname, "..");
 
-function loadDotEnv() {
-  const envPath = path.resolve(__dirname, "../.env");
-  if (!fs.existsSync(envPath)) return;
+function resolveEnvPath() {
+  const arg = process.argv.find((a) => a.startsWith("--env-file="));
+  if (arg) {
+    return path.resolve(ROOT, arg.slice("--env-file=".length).trim());
+  }
+  if (process.env.RELAYER_ENV_FILE) {
+    return path.resolve(process.env.RELAYER_ENV_FILE);
+  }
+  // Prefer network-specific files so Sepolia + Mainnet can run together.
+  const networkHint = String(process.env.RELAYER_NETWORK || "").toLowerCase();
+  if (networkHint === "mainnet") {
+    const p = path.resolve(ROOT, ".env.mainnet");
+    if (fs.existsSync(p)) return p;
+  }
+  if (networkHint === "sepolia") {
+    const p = path.resolve(ROOT, ".env.sepolia");
+    if (fs.existsSync(p)) return p;
+  }
+  for (const name of [".env.sepolia", ".env.mainnet", ".env"]) {
+    const p = path.resolve(ROOT, name);
+    if (fs.existsSync(p)) return p;
+  }
+  return path.resolve(ROOT, ".env");
+}
+
+function loadDotEnv(envPath) {
+  if (!fs.existsSync(envPath)) {
+    console.error(`Missing env file: ${envPath}`);
+    console.error(
+      "Create packages/relayer/.env.sepolia and .env.mainnet (see .env.example)."
+    );
+    process.exit(1);
+  }
   for (const line of fs.readFileSync(envPath, "utf8").split(/\r?\n/)) {
     const t = line.trim();
     if (!t || t.startsWith("#")) continue;
@@ -38,15 +69,32 @@ function loadDotEnv() {
     ) {
       v = v.slice(1, -1);
     }
-    if (!process.env[k]) process.env[k] = v;
+    // File wins for this process — no cross-network bleed.
+    process.env[k] = v;
   }
 }
 
-loadDotEnv();
+const envPath = resolveEnvPath();
+loadDotEnv(envPath);
 
 const HOST = process.env.RELAYER_HOST || "127.0.0.1";
-const PORT = Number(process.env.RELAYER_PORT || "8787");
-const RPC = process.env.SEPOLIA_RPC || "https://ethereum-sepolia-rpc.publicnode.com";
+const RELAYER_NETWORK = String(
+  process.env.RELAYER_NETWORK || "sepolia"
+).toLowerCase();
+if (RELAYER_NETWORK !== "sepolia" && RELAYER_NETWORK !== "mainnet") {
+  console.error("RELAYER_NETWORK must be sepolia or mainnet");
+  process.exit(1);
+}
+const defaultPort = RELAYER_NETWORK === "mainnet" ? "8788" : "8787";
+const PORT = Number(process.env.RELAYER_PORT || defaultPort);
+const CHAIN = RELAYER_NETWORK === "mainnet" ? mainnet : sepolia;
+const RPC =
+  process.env.RELAYER_RPC ||
+  process.env.MAINNET_RPC ||
+  process.env.SEPOLIA_RPC ||
+  (RELAYER_NETWORK === "mainnet"
+    ? "https://ethereum-rpc.publicnode.com"
+    : "https://ethereum-sepolia-rpc.publicnode.com");
 const CORS = (process.env.RELAYER_CORS_ORIGINS ||
   "http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:5180,http://localhost:5180")
   .split(",")
@@ -56,7 +104,7 @@ const CORS = (process.env.RELAYER_CORS_ORIGINS ||
 const pk = process.env.RELAYER_PRIVATE_KEY;
 if (!pk || !/^0x[0-9a-fA-F]{64}$/.test(pk)) {
   console.error(
-    "Set RELAYER_PRIVATE_KEY in packages/relayer/.env (see .env.example). Use a dedicated Sepolia test key."
+    `Set RELAYER_PRIVATE_KEY in ${path.basename(envPath)} (see .env.example). Use a dedicated hot wallet.`
   );
   process.exit(1);
 }
@@ -123,24 +171,24 @@ function assertSilentFeeCoversRelayer(data) {
 }
 
 function currentAllowlist() {
-  return loadPoolAllowlist();
+  return loadPoolAllowlist(RELAYER_NETWORK);
 }
 
 const account = privateKeyToAccount(/** @type {`0x${string}`} */ (pk));
 const transport = viemHttp(RPC);
 const walletClient = createWalletClient({
   account,
-  chain: sepolia,
+  chain: CHAIN,
   transport,
 });
 const publicClient = createPublicClient({
-  chain: sepolia,
+  chain: CHAIN,
   transport,
 });
 
 function logInfo(msg) {
   // No IP, no calldata — privacy default.
-  console.log(`[relayer] ${msg}`);
+  console.log(`[relayer:${RELAYER_NETWORK}] ${msg}`);
 }
 
 function corsHeaders(req) {
@@ -228,11 +276,13 @@ const server = http.createServer(async (req, res) => {
         200,
         {
           ok: true,
+          network: RELAYER_NETWORK,
           chainId: allowlist.chainId,
           relayer: account.address,
           balanceWei: bal.toString(),
           pools: allowlist.pools.size,
           bind: `${HOST}:${PORT}`,
+          envFile: path.basename(envPath),
           privacy:
             "Accepts withdraw calldata only. Never send note secrets to this service.",
         },
@@ -266,6 +316,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, HOST, () => {
   logInfo(`listening http://${HOST}:${PORT}`);
+  logInfo(`env ${path.basename(envPath)}`);
   logInfo(`relayer ${account.address}`);
   logInfo(`pools allowlisted: ${currentAllowlist().pools.size}`);
   logInfo("POST /v1/relay { chainId, to, data } — no note secrets");

@@ -1,6 +1,6 @@
 /**
  * Experimental-network guard.
- * Blocks well-known mainnets until a real ceremony exists (see CEREMONY_REQUIREMENTS_V1.md).
+ * Blocks well-known mainnets until a published mainnet registry sets clientsUnlocked.
  * Public testnets like Sepolia are allowed but must show honesty banners.
  */
 
@@ -67,14 +67,13 @@ export function getNetworkHonestyBanner(
   const id = parseChainId(chainId);
   if (isKnownMainnetChainId(id)) {
     return (
-      `chainId ${id}: known mainnet — blocked for experimental keys until ceremony finals ` +
-      `(PRODUCTION_READINESS_V1.md Gate C).`
+      `chainId ${id}: Ethereum mainnet. Shielded pools. Real funds.`
     );
   }
   if (isExperimentalPublicTestnet(id)) {
     return (
-      `chainId ${id}: public testnet experimental dry-run. Keys are not ceremony-secured. ` +
-      `See SEPOLIA_EXPERIMENTAL_RUNBOOK_V1.md / PRODUCTION_READINESS_V1.md Gate B.`
+      `chainId ${id}: public testnet. Live Sepolia uses Phase-2 ceremony keys. ` +
+      `See docs/SEPOLIA.md.`
     );
   }
   if (id === 31337 || id === 1337) {
@@ -93,15 +92,17 @@ export function getNetworkHonestyBanner(
 export function assertExperimentalNetworkAllowed(params: {
   chainId: number | bigint | string;
   allowExperimentalNetwork?: boolean;
+  mainnetClientsUnlocked?: boolean;
   context?: string;
 }): number {
   const id = parseChainId(params.chainId);
   if (!isKnownMainnetChainId(id)) return id;
+  if (params.mainnetClientsUnlocked) return id;
   if (params.allowExperimentalNetwork) return id;
   const ctx = params.context ? ` (${params.context})` : "";
   throw new Error(
-    `refusing chainId ${id}${ctx}: known mainnet while ceremony keys are not production-ready. ` +
-      `Use a local/test chain (e.g. Sepolia 11155111), or pass --allow-experimental-network only for explicit dry-runs you accept are unsafe. ` +
-      `See CEREMONY_REQUIREMENTS_V1.md / PRODUCTION_READINESS_V1.md.`
+    `refusing chainId ${id}${ctx}: mainnet clients are locked until a dedicated deploy is recorded ` +
+      `and deployments/pools.mainnet.json sets clientsUnlocked true. ` +
+      `Use Sepolia (11155111) for testing.`
   );
 }

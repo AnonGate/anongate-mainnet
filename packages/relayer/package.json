@@ -5,8 +5,11 @@
   "type": "module",
   "description": "Local Sepolia withdraw relayer — broadcasts client-built calldata only (no note secrets).",
   "scripts": {
-    "start": "node ./src/server.mjs",
-    "dev": "node ./src/server.mjs",
+    "start": "node ./start-both.mjs",
+    "start:both": "node ./start-both.mjs",
+    "start:sepolia": "node ./src/server.mjs --env-file=.env.sepolia",
+    "start:mainnet": "node ./src/server.mjs --env-file=.env.mainnet",
+    "dev": "node ./start-both.mjs",
     "test": "node --test ./src/allowlist.test.mjs"
   },
   "dependencies": {

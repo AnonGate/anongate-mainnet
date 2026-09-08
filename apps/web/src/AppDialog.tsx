@@ -82,12 +82,19 @@ type ConfirmDepositRequest = {
   resolve: (ok: boolean) => void;
 };
 
+type ConfirmNetworkSwitchRequest = {
+  type: "confirm-network";
+  target: "mainnet" | "sepolia";
+  resolve: (ok: boolean) => void;
+};
+
 export type AppDialogRequest =
   | ConfirmSaveRequest
   | ConfirmLeaveRequest
   | PasswordRequest
   | ConfirmPartialChangeRequest
-  | ConfirmDepositRequest;
+  | ConfirmDepositRequest
+  | ConfirmNetworkSwitchRequest;
 
 export function useAppDialogs() {
   const [request, setRequest] = useState<AppDialogRequest | null>(null);
@@ -175,6 +182,19 @@ export function useAppDialogs() {
     });
   }
 
+  function confirmNetworkSwitch(target: "mainnet" | "sepolia"): Promise<boolean> {
+    return new Promise((resolve) => {
+      setRequest({
+        type: "confirm-network",
+        target,
+        resolve: (ok) => {
+          setRequest(null);
+          resolve(ok);
+        },
+      });
+    });
+  }
+
   return {
     request,
     confirmSaveNotes,
@@ -182,6 +202,7 @@ export function useAppDialogs() {
     askPassword,
     confirmPartialChange,
     confirmDeposit,
+    confirmNetworkSwitch,
   };
 }
 
@@ -221,6 +242,9 @@ export function AppDialogHost(props: { request: AppDialogRequest | null }) {
       />
     );
   }
+  if (req.type === "confirm-network") {
+    return <ConfirmNetworkDialog target={req.target} onClose={req.resolve} />;
+  }
   return <PasswordDialog mode={req.mode} onClose={req.resolve} />;
 }
 
@@ -250,6 +274,75 @@ function DialogShell(props: {
       </div>
     </div>,
     document.body,
+  );
+}
+
+function ConfirmNetworkDialog(props: {
+  target: "mainnet" | "sepolia";
+  onClose: (ok: boolean) => void;
+}) {
+  const titleId = useId();
+  const [acked, setAcked] = useState(false);
+  const toMainnet = props.target === "mainnet";
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") props.onClose(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [props]);
+
+  return (
+    <DialogShell
+      titleId={titleId}
+      kicker={toMainnet ? "Real funds" : "Test network"}
+      title={toMainnet ? "Switch to Ethereum mainnet?" : "Switch to Sepolia?"}
+    >
+      <p className="app-dialog-lead">
+        {toMainnet
+          ? "You are leaving the test network. Deposits and withdrawals on Ethereum mainnet move real ETH, DAI, and LUSD. There is no undo."
+          : "You are leaving Ethereum mainnet. Sepolia is a public test network. Deposits, withdrawals, and balances use test ETH and test tokens with no market value."}
+      </p>
+      <ul className="recovery-warn-list app-dialog-list">
+        {toMainnet ? (
+          <>
+            <li>Real value — not Sepolia test tokens.</li>
+            <li>Sepolia notes do not spend on mainnet pools.</li>
+            <li>You alone hold the Recovery Code.</li>
+          </>
+        ) : (
+          <>
+            <li>No real funds at risk on Sepolia.</li>
+            <li>Mainnet notes do not spend on Sepolia pools.</li>
+            <li>Mint helpers apply to test tokens only.</li>
+          </>
+        )}
+      </ul>
+      {toMainnet ? (
+        <label className="recovery-check app-dialog-check">
+          <input
+            type="checkbox"
+            checked={acked}
+            onChange={(e) => setAcked(e.target.checked)}
+          />
+          <span>I understand this uses real funds on Ethereum mainnet.</span>
+        </label>
+      ) : null}
+      <div className="app-dialog-actions">
+        <button type="button" className="btn secondary" onClick={() => props.onClose(false)}>
+          {toMainnet ? "Stay on Sepolia" : "Stay on Mainnet"}
+        </button>
+        <button
+          type="button"
+          className="btn"
+          disabled={toMainnet && !acked}
+          onClick={() => props.onClose(true)}
+        >
+          {toMainnet ? "Use mainnet" : "Use Sepolia"}
+        </button>
+      </div>
+    </DialogShell>
   );
 }
 

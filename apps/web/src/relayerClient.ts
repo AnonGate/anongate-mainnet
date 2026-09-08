@@ -1,12 +1,22 @@
-import { ACTIVE_NETWORK } from "./networkConfig";
+import { getActiveNetwork } from "./networkConfig";
 
 /**
- * Default local relayer. Override with VITE_RELAYER_URL at build/dev time.
- * Only send { chainId, to, data } — never note secrets.
+ * Silent-send relayer URL for the active product network.
+ * Sepolia → :8787 · Mainnet → :8788 (two processes, two keys).
+ * Optional overrides: VITE_RELAYER_URL_SEPOLIA / VITE_RELAYER_URL_MAINNET / VITE_RELAYER_URL
  */
 export function relayerBaseUrl(): string {
-  const fromEnv = import.meta.env.VITE_RELAYER_URL as string | undefined;
-  return (fromEnv && fromEnv.trim()) || "http://127.0.0.1:8787";
+  const net = getActiveNetwork();
+  if (net.kind === "mainnet") {
+    const fromEnv = import.meta.env.VITE_RELAYER_URL_MAINNET as string | undefined;
+    if (fromEnv?.trim()) return fromEnv.trim();
+  } else {
+    const fromEnv = import.meta.env.VITE_RELAYER_URL_SEPOLIA as string | undefined;
+    if (fromEnv?.trim()) return fromEnv.trim();
+  }
+  const legacy = import.meta.env.VITE_RELAYER_URL as string | undefined;
+  if (legacy?.trim()) return legacy.trim();
+  return net.relayerUrl;
 }
 
 export type RelayWithdrawResult = {
@@ -19,12 +29,13 @@ export async function relayWithdrawCalldata(params: {
   to: string;
   data: string;
 }): Promise<RelayWithdrawResult> {
-  const url = `${relayerBaseUrl().replace(/\/$/, "")}/v1/relay`;
+  const base = relayerBaseUrl();
+  const url = `${base.replace(/\/$/, "")}/v1/relay`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      chainId: ACTIVE_NETWORK.chainId,
+      chainId: getActiveNetwork().chainId,
       to: params.to,
       data: params.data,
     }),

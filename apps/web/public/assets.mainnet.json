@@ -1,19 +1,22 @@
 {
   "format": "absolute-privacy-assets",
-  "version": 1,
+  "version": 2,
   "chainId": 1,
   "network": "ethereum-mainnet",
+  "status": "deployed — clients unlocked",
   "policy": "See docs/PROTOCOL.md — one ShieldedPool per asset; no cross-asset redeem",
+  "warning": "Real Ethereum assets.",
   "assets": [
     {
-      "id": "weth",
-      "symbol": "WETH",
+      "id": "eth",
+      "symbol": "ETH",
       "displaySymbol": "ETH",
       "decimals": 18,
-      "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-      "kind": "wrapped-native",
+      "address": "0x0000000000000000000000000000000000000000",
+      "kind": "native",
       "withdrawSameAssetOnly": true,
-      "notes": "Use WETH in the pool. Clients may wrap/unwrap ETH in UX."
+      "native": true,
+      "notes": "Native ETH. Deposit sends msg.value. Not WETH."
     },
     {
       "id": "dai",
@@ -23,7 +26,7 @@
       "address": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
       "kind": "stablecoin",
       "withdrawSameAssetOnly": true,
-      "notes": "No Circle blacklist; governance risk remains."
+      "notes": "Canonical Maker DAI. No Circle blacklist; governance risk remains."
     },
     {
       "id": "lusd",
@@ -33,7 +36,8 @@
       "address": "0x5f98805A4E8be255a32880FDeC7F6728C6568bA0",
       "kind": "stablecoin",
       "withdrawSameAssetOnly": true,
-      "notes": "No admin freeze design; thinner liquidity than DAI."
+      "notes": "Liquity LUSD. No admin freeze design; thinner liquidity than DAI."
     }
-  ]
+  ],
+  "notes": "Token addresses are canonical Ethereum contracts. Pool addresses are recorded only after a dedicated mainnet deploy."
 }

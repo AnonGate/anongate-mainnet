@@ -2,7 +2,7 @@
 
 Reference client for automation. Secrets stay local. Poseidon and Groth16 proving call the Node CLI so proofs match the Circom keys. **Node.js is required.**
 
-Pool addresses come from `deployments/pools.sepolia.json`.
+Pool addresses come from `deployments/pools.sepolia.json` and `deployments/pools.mainnet.json`.
 
 ## Setup
 
@@ -17,4 +17,10 @@ pip install -e .
 python -m absolute_privacy sepolia status --asset eth --rpc
 ```
 
-Note, prove, build, and send commands match the JS CLI. Mainnet stays blocked. Prefer `--passphrase-stdin` or `AP_BACKUP_PASSPHRASE` over a passphrase on the command line.
+## Mainnet
+
+```bash
+python -m absolute_privacy mainnet status --asset eth --rpc
+```
+
+Note, prove, build, and send commands match the JS CLI. Prefer `--passphrase-stdin` or `AP_BACKUP_PASSPHRASE` over a passphrase on the command line.

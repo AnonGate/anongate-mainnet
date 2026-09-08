@@ -1,0 +1,91 @@
+{
+  "finishedAt": "2026-09-08T11:19:45.009Z",
+  "solc": "0.8.24+commit.e67f0147",
+  "skipped": {
+    "poseidon": "0xB4cdAa02c73de2C8968333D39f576144b8CFd664",
+    "reason": "Deployed from raw circomlib bytecode — no Solidity source",
+    "eoa": [
+      "0x6e82775f89d255B8bd93717a803ACa79079175B7",
+      "0xbcDD1741f5c42066c34E80f8F25e21769028f621"
+    ]
+  },
+  "results": [
+    {
+      "name": "depositRawVerifier",
+      "address": "0x2aeef0396547916FdeD0e22540191662989DA327",
+      "ok": true,
+      "already": true,
+      "status": 0
+    },
+    {
+      "name": "withdrawRawVerifier",
+      "address": "0x676D1f23A9DEB89855e9CC85616f38B871371b40",
+      "ok": true,
+      "already": true,
+      "status": 0
+    },
+    {
+      "name": "withdraw1RawVerifier",
+      "address": "0x022D406e8A9529aa70f93b4e01a8f96ACdd5623e",
+      "ok": true,
+      "already": true,
+      "status": 0
+    },
+    {
+      "name": "withdrawPartialRawVerifier",
+      "address": "0x30EbBe5217Db8e3d4d567a0165E12EC3dA9111A6",
+      "ok": true,
+      "already": true,
+      "status": 0
+    },
+    {
+      "name": "depositVerifier",
+      "address": "0x56a7Cd15f2272dD6D630cb159f95c1D110FC627C",
+      "ok": true,
+      "already": true,
+      "status": 0
+    },
+    {
+      "name": "withdrawVerifier",
+      "address": "0x03a04f48396E34fdA06eeDD778e31B2896134101",
+      "ok": true,
+      "already": true,
+      "status": 0
+    },
+    {
+      "name": "withdraw1Verifier",
+      "address": "0x57ABC8539C8178FC01C8a3ac96BF8196caF04ec6",
+      "ok": true,
+      "already": true,
+      "status": 0
+    },
+    {
+      "name": "withdrawPartialVerifier",
+      "address": "0xBFe6F17595f40fd8975A7BDBb7FB77Bb13c4e5B7",
+      "ok": true,
+      "already": false,
+      "status": 0
+    },
+    {
+      "name": "pool_eth",
+      "address": "0x453ef841EBcB838De11B20cb9739Bc769a0a1a30",
+      "ok": true,
+      "already": true,
+      "status": 0
+    },
+    {
+      "name": "pool_dai",
+      "address": "0xD35828b55EFDFD78F742827e0C6Ebe1492441f13",
+      "ok": true,
+      "already": true,
+      "status": 0
+    },
+    {
+      "name": "pool_lusd",
+      "address": "0x55cbe1d0B6D5Ea13833d6500D3C3C1088A32f0E4",
+      "ok": true,
+      "already": true,
+      "status": 0
+    }
+  ]
+}

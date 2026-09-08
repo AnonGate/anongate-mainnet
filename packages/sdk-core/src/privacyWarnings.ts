@@ -29,7 +29,7 @@ export function poolHealthWarning(commitmentCount: number): PrivacyWarning {
     moderate:
       "Anonymity set is moderate. Useful against casual observers; not strong against dedicated analytics.",
     healthy:
-      "Anonymity set looks healthy by leaf count (≥512). Still not absolute privacy; ceremony keys required for mainnet.",
+      "Anonymity set looks healthy by leaf count (≥512). Still not absolute privacy.",
   };
   return {
     code: `pool_health_${tier}`,

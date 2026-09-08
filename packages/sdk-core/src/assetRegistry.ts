@@ -37,11 +37,25 @@ export type PoolsFile = {
   status?: string;
   warning?: string;
   policy?: string;
+  clientsUnlocked?: boolean;
   shared?: Record<string, unknown>;
   pools: Record<string, PoolEntry>;
 };
 
-export const ADOPTED_ASSET_IDS = ["weth", "dai", "lusd"] as const;
+export const ADOPTED_ASSET_IDS = ["eth", "dai", "lusd"] as const;
+
+const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
+const ZERO = /^0x0{40}$/i;
+
+/** True only after a dedicated mainnet deploy is recorded and explicitly unlocked. */
+export function isMainnetRegistryLive(pools: PoolsFile | null | undefined): boolean {
+  if (!pools || pools.chainId !== 1) return false;
+  if (pools.clientsUnlocked !== true) return false;
+  return ADOPTED_ASSET_IDS.every((id) => {
+    const pool = pools.pools?.[id]?.pool;
+    return typeof pool === "string" && ADDRESS.test(pool) && !ZERO.test(pool);
+  });
+}
 
 export function parseAssetsFile(doc: unknown): AssetsFile {
   const d = doc as AssetsFile;

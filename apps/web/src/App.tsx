@@ -108,11 +108,11 @@ import {
   shortTx,
 } from "./userNotice";
 import { shortHex } from "./guideLogic";
-import { ACTIVE_NETWORK, isActiveChainId } from "./networkConfig";
+import { getActiveNetwork, isActiveChainId, networkById, readStoredNetworkId, setActiveNetworkId, type ProductNetworkId } from "./networkConfig";
 import { formatUserError } from "./formatUserError";
 import { ProductShell, type AppPage, type PoolOption } from "./productPages";
 import { AppDialogHost, snapshotSessionNotes, useAppDialogs } from "./AppDialog";
-import { relayWithdrawCalldata } from "./relayerClient";
+import { relayWithdrawCalldata, relayerBaseUrl } from "./relayerClient";
 import {
   connectWallet,
   disconnectWallet,
@@ -122,7 +122,7 @@ import {
   ethCall,
   getChainIdHex,
   sendTransaction,
-  switchToSepolia,
+  switchToProductNetwork,
   waitReceipt,
   watchAsset,
 } from "./wallet";
@@ -219,7 +219,13 @@ export function App() {
   const [sepoliaPools, setSepoliaPools] = useState<SepoliaPoolPreset[]>([]);
   const [selectedPresetId, setSelectedPresetId] = useState("");
   const [latestTx, setLatestTx] = useState<TxStatus | null>(null);
-  const [chainId, setChainId] = useState(String(ACTIVE_NETWORK.chainId));
+  const [selectedNetwork, setSelectedNetwork] = useState<ProductNetworkId>(() => {
+    const id = readStoredNetworkId();
+    setActiveNetworkId(id);
+    return id;
+  });
+  const productNetwork = networkById(selectedNetwork);
+  const [chainId, setChainId] = useState(String(productNetwork.chainId));
   const [account, setAccount] = useState("");
   const [walletChain, setWalletChain] = useState("");
   const accountRef = useRef("");
@@ -272,11 +278,11 @@ export function App() {
     selectedSpendIndices.every(
       (index) => store.notes[index]?.statusHint !== "spent"
     );
-  /** Active product pools = Sepolia deployment, presented as the live app network. */
+  /** Active product pools for the selected network. */
   const productPoolOptions: PoolOption[] = useMemo(
     () =>
       sepoliaPools.map((p) => {
-        const labels = ACTIVE_NETWORK.productLabels[p.id] ?? {
+        const labels = productNetwork.productLabels[p.id] ?? {
           name: p.assetSymbol,
           symbol: p.assetSymbol,
         };
@@ -292,7 +298,7 @@ export function App() {
           source: "active" as const,
         };
       }),
-    [sepoliaPools]
+    [sepoliaPools, productNetwork]
   );
 
   const selectedPoolOption =
@@ -330,19 +336,20 @@ export function App() {
     purgeLegacyBrowserNoteStorage();
   }, []);
 
-  // Load the active product pool registry (Sepolia until mainnet ships).
+  // Load the pool registry for the selected product network.
   useEffect(() => {
     let cancelled = false;
-    void fetch(ACTIVE_NETWORK.poolsPath, { cache: "no-store" })
+    setSepoliaPools([]);
+    void fetch(productNetwork.poolsPath, { cache: "no-store" })
       .then(async (r) => {
         if (!r.ok) throw new Error(`pools registry HTTP ${r.status}`);
         return (await r.json()) as SepoliaRegistry;
       })
       .then((registry) => {
         if (cancelled) return;
-        if (registry.chainId !== ACTIVE_NETWORK.chainId) {
+        if (registry.chainId !== productNetwork.chainId) {
           throw new Error(
-            `pool registry chainId ${registry.chainId} != active ${ACTIVE_NETWORK.chainId}`
+            `pool registry chainId ${registry.chainId} != active ${productNetwork.chainId}`
           );
         }
         const presets = Object.entries(registry.pools).map(([id, pool]) => {
@@ -361,13 +368,7 @@ export function App() {
         setSepoliaPools(presets);
         setSelectedPresetId((current) => {
           if (current && presets.some((p) => p.id === current)) return current;
-          const first = presets[0];
-          if (first) {
-            setPoolAddress(first.pool);
-            setTokenAddress(first.asset);
-            return first.id;
-          }
-          return current;
+          return presets[0]?.id ?? "";
         });
       })
       .catch((error: unknown) => {
@@ -384,7 +385,27 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [productNetwork]);
+
+  // Same asset ids exist on both networks — keep the selected id, swap the
+  // live pool/token addresses whenever the registry list changes.
+  useEffect(() => {
+    const match =
+      sepoliaPools.find((p) => p.id === selectedPresetId) ?? sepoliaPools[0];
+    if (!match) {
+      setPoolAddress(ZERO_ADDR);
+      setTokenAddress("");
+      return;
+    }
+    setPoolAddress(match.pool);
+    setTokenAddress(match.asset);
+  }, [sepoliaPools, selectedPresetId]);
+
+  useEffect(() => {
+    setPoolRoot("");
+    setPoolCount(null);
+    setPoolHealth(null);
+  }, [poolAddress]);
 
   const allowUnloadRef = useRef(false);
   const leavePromptBusyRef = useRef(false);
@@ -589,46 +610,84 @@ export function App() {
 
   async function refreshPoolAndBindNotes(opts?: {
     preferCommitment?: string;
+    retries?: number;
   }): Promise<{ bound: number; count: number; root: string }> {
     if (!poolAddress || poolAddress.endsWith("000000000000000000000000")) {
       throw new Error("set the deployed pool address");
     }
-    const synced = await fetchSyncedPoolState(poolAddress);
-    setPoolRoot(
-      `0x${BigInt(synced.onChainRoot).toString(16).padStart(64, "0")}`
-    );
-    setPoolCount(synced.commitments.length);
-    const health = poolHealthWarning(synced.commitments.length);
-    setPoolHealth(`${poolHealthTier(synced.commitments.length)} · ${health.message}`);
-    if (health.severity === "warn") {
-      showPrivacyWarnings([health]);
+    const attempts = Math.max(1, opts?.retries ?? 1);
+    let lastErr: unknown;
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      try {
+        const synced = await fetchSyncedPoolState(poolAddress);
+        if (opts?.preferCommitment) {
+          const want = BigInt(opts.preferCommitment).toString();
+          const found = synced.commitments.some(
+            (c) => BigInt(c).toString() === want
+          );
+          if (!found && attempt < attempts - 1) {
+            await new Promise((r) => setTimeout(r, 1_200 * (attempt + 1)));
+            continue;
+          }
+        }
+        setPoolRoot(
+          `0x${BigInt(synced.onChainRoot).toString(16).padStart(64, "0")}`
+        );
+        setPoolCount(synced.commitments.length);
+        const health = poolHealthWarning(synced.commitments.length);
+        setPoolHealth(
+          `${poolHealthTier(synced.commitments.length)} · ${health.message}`
+        );
+        if (health.severity === "warn") {
+          showPrivacyWarnings([health]);
+        }
+
+        let bound = 0;
+        let notesAfter: LocalNoteRecord[] = [];
+        const poolMeta = {
+          address: poolAddress,
+          symbol: assetSymbol,
+        };
+        setStore((prev) => {
+          const result = bindNotesToPublicState(prev.notes, synced, poolMeta);
+          bound = result.bound;
+          notesAfter = result.notes;
+          return { ...prev, notes: result.notes };
+        });
+
+        if (opts?.preferCommitment) {
+          const idx = notesAfter.findIndex(
+            (n) => BigInt(n.commitment) === BigInt(opts.preferCommitment!)
+          );
+          if (idx >= 0) setSelectedNoteIndex(idx);
+          const hit = notesAfter.find(
+            (n) => BigInt(n.commitment) === BigInt(opts.preferCommitment!)
+          );
+          if (
+            (!hit || hit.leafIndex == null) &&
+            attempt < attempts - 1
+          ) {
+            await new Promise((r) => setTimeout(r, 1_200 * (attempt + 1)));
+            continue;
+          }
+        }
+
+        return {
+          bound,
+          count: synced.commitments.length,
+          root: synced.onChainRoot,
+        };
+      } catch (e) {
+        lastErr = e;
+        if (attempt < attempts - 1) {
+          await new Promise((r) => setTimeout(r, 1_200 * (attempt + 1)));
+          continue;
+        }
+      }
     }
-
-    let bound = 0;
-    let notesAfter: LocalNoteRecord[] = [];
-    const poolMeta = {
-      address: poolAddress,
-      symbol: assetSymbol,
-    };
-    setStore((prev) => {
-      const result = bindNotesToPublicState(prev.notes, synced, poolMeta);
-      bound = result.bound;
-      notesAfter = result.notes;
-      return { ...prev, notes: result.notes };
-    });
-
-    if (opts?.preferCommitment) {
-      const idx = notesAfter.findIndex(
-        (n) => BigInt(n.commitment) === BigInt(opts.preferCommitment!)
-      );
-      if (idx >= 0) setSelectedNoteIndex(idx);
-    }
-
-    return {
-      bound,
-      count: synced.commitments.length,
-      root: synced.root,
-    };
+    throw lastErr instanceof Error
+      ? lastErr
+      : new Error(String(lastErr ?? "pool sync failed"));
   }
 
   function showPrivacyWarnings(warnings: PrivacyWarning[]) {
@@ -1370,12 +1429,13 @@ export function App() {
     setChainId(String(Number.parseInt(cid, 16)));
     if (selectedPreset && !isActiveChainId(Number.parseInt(cid, 16))) {
       throw new Error(
-        `switch wallet to chainId ${ACTIVE_NETWORK.chainId} (${ACTIVE_NETWORK.displayName})`
+        `switch wallet to chainId ${productNetwork.chainId} (${productNetwork.displayName})`
       );
     }
     assertExperimentalNetworkAllowed({
       chainId: cid,
       context,
+      mainnetClientsUnlocked: selectedNetwork === "mainnet",
     });
     return cid;
   }
@@ -1390,13 +1450,17 @@ export function App() {
       setChainId(String(Number.parseInt(cid, 16)));
       setWithdrawRecipient((current) => (current ? current : addr));
       try {
-        assertExperimentalNetworkAllowed({ chainId: cid, context: "wallet connect" });
+        assertExperimentalNetworkAllowed({
+          chainId: cid,
+          context: "wallet connect",
+          mainnetClientsUnlocked: selectedNetwork === "mainnet",
+        });
         if (!isActiveChainId(Number.parseInt(cid, 16))) {
           setOk(
-            `Connected ${shortHex(addr)}. Switch wallet to ${ACTIVE_NETWORK.displayName} (chain ${ACTIVE_NETWORK.chainId}) — use Get tokens → Switch wallet to network.`
+            `Connected ${shortHex(addr)}. Switch wallet to ${productNetwork.displayName} (chain ${productNetwork.chainId}) — use Mint → Switch wallet to network.`
           );
         } else {
-          setOk(`Connected ${shortHex(addr)} on ${ACTIVE_NETWORK.displayName}.`);
+          setOk(`Connected ${shortHex(addr)} on ${productNetwork.displayName}.`);
         }
       } catch (e) {
         setOk(`Connected ${shortHex(addr)} — this network is blocked.`);
@@ -1427,13 +1491,62 @@ export function App() {
     }
   }
 
-  async function onSwitchToSepolia() {
+  async function onSelectProductNetwork(id: ProductNetworkId) {
+    if (id === selectedNetwork) return;
+    const ok = await dialogs.confirmNetworkSwitch(id);
+    if (!ok) return;
+    setActiveNetworkId(id);
+    setSelectedNetwork(id);
+    setChainId(String(networkById(id).chainId));
+    clearSpendProofContext();
+    setProofBundle(null);
+    setWithdraw1Bundle(null);
+    setWithdrawPartialBundle(null);
+    setProvedSpendIndices(null);
+    setProvedOneIndex(null);
+    setLatestTx(null);
+    setPrivacyHints([]);
+    setMintCompleted(false);
+    setPoolRoot("");
+    setPoolCount(null);
+    setPoolHealth(null);
+    if (id !== "sepolia") {
+      setPage((current) => (current === "lab" ? "deposit" : current));
+    }
+    setOk(
+      id === "mainnet"
+        ? "App set to Ethereum mainnet. Connect or switch your wallet to chain 1."
+        : "App set to Sepolia testnet. Connect or switch your wallet to Sepolia."
+    );
+    if (account) {
+      void onSwitchWalletNetworkFor(id);
+    }
+  }
+
+  async function onSwitchWalletNetworkFor(id: ProductNetworkId) {
     setBusy(true);
     try {
-      const cid = await switchToSepolia();
+      const cid = await switchToProductNetwork(id);
       setWalletChain(cid);
       setChainId(String(Number.parseInt(cid, 16)));
-      setOk("Wallet switched to Sepolia. Continue with mint or create notes.");
+    } catch (e) {
+      notifyCaught(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onSwitchWalletNetwork() {
+    setBusy(true);
+    try {
+      const cid = await switchToProductNetwork(selectedNetwork);
+      setWalletChain(cid);
+      setChainId(String(Number.parseInt(cid, 16)));
+      setOk(
+        selectedNetwork === "mainnet"
+          ? "Wallet switched to Ethereum mainnet."
+          : "Wallet switched to Sepolia. Continue with mint or create notes."
+      );
     } catch (e) {
       notifyCaught(e);
     } finally {
@@ -1553,12 +1666,15 @@ export function App() {
   async function onMintSepoliaTestToken() {
     setBusy(true);
     try {
+      if (selectedNetwork !== "sepolia") {
+        throw new Error("Mint is only available on Sepolia test tokens.");
+      }
       if (!account) throw new Error("connect wallet first");
       const cid = await getChainIdHex();
       setWalletChain(cid);
       if (!isActiveChainId(Number.parseInt(cid, 16))) {
         throw new Error(
-          `Mint requires the active network (chainId ${ACTIVE_NETWORK.chainId})`
+          `Mint requires the active network (chainId ${productNetwork.chainId})`
         );
       }
       if (!selectedPreset) {
@@ -1812,7 +1928,7 @@ export function App() {
         const bal = BigInt(balRaw);
         if (bal < BigInt(amount)) {
           throw new Error(
-            `Insufficient ${assetSymbol} balance: wallet has ${formatAssetAmount(bal, assetDecimals, assetSymbol)}, note needs ${formatAssetAmount(amount, assetDecimals, assetSymbol)}. Mint more ${assetSymbol} in Get tokens, then retry Deposit.`
+            `Insufficient ${assetSymbol} balance: wallet has ${formatAssetAmount(bal, assetDecimals, assetSymbol)}, note needs ${formatAssetAmount(amount, assetDecimals, assetSymbol)}. Open Mint for more ${assetSymbol}, then retry Deposit.`
           );
         }
         const approveData = encodeApproveCalldata({
@@ -1858,7 +1974,25 @@ export function App() {
         hash: depositTx,
         state: "pending",
       });
-      await waitReceipt(depositTx);
+      try {
+        await waitReceipt(depositTx);
+      } catch (receiptErr) {
+        // Public RPC can lag behind Etherscan. If the commitment is already
+        // in the pool tree, treat the deposit as confirmed and continue.
+        let seen = false;
+        for (let i = 0; i < 8 && !seen; i++) {
+          try {
+            const synced = await fetchSyncedPoolState(poolAddress);
+            seen = synced.commitments.some(
+              (c) => BigInt(c).toString() === BigInt(note.commitment).toString()
+            );
+          } catch {
+            /* keep polling */
+          }
+          if (!seen) await new Promise((r) => setTimeout(r, 1_500));
+        }
+        if (!seen) throw receiptErr;
+      }
       setLatestTx({
         label: nativeDeposit ? "ETH deposit" : "Deposit",
         hash: depositTx,
@@ -1869,6 +2003,7 @@ export function App() {
       try {
         const sync = await refreshPoolAndBindNotes({
           preferCommitment: note.commitment,
+          retries: 8,
         });
         let notesSnapshot: LocalNoteRecord[] = [];
         setStore((prev) => {
@@ -2499,7 +2634,7 @@ export function App() {
       const msg = formatUserError(e);
       if (/fetch|Failed to fetch|NetworkError|ECONNREFUSED/i.test(msg)) {
         setErr(
-          `Silent send needs the local relayer at http://127.0.0.1:8787. Start it, then try again. ${msg}`
+          `Silent send needs the local relayer for this network (${relayerBaseUrl()}). Run npm run start:both in packages/relayer, then try again. ${msg}`
         );
       } else if (/fee too low/i.test(msg)) {
         setErr(
@@ -2734,21 +2869,9 @@ export function App() {
       privacyHints={privacyHints}
       onConnect={() => void onConnectWallet()}
       onDisconnect={() => void onDisconnectWallet()}
-      selectedNetwork="sepolia"
+      selectedNetwork={selectedNetwork}
       onSelectNetwork={(id) => {
-        if (id === "mainnet") {
-          setErr(
-            "Ethereum mainnet is not published yet. Sepolia is the live test network."
-          );
-          return;
-        }
-        if (!account) {
-          setOk(
-            "Sepolia is the live test network. Connect a wallet to switch MetaMask to it."
-          );
-          return;
-        }
-        void onSwitchToSepolia();
+        void onSelectProductNetwork(id);
       }}
       onCreateAndDownload={() => void onCreateProductNote()}
       onImportNotes={(file) => void onImportSpendNotesFile(file)}
@@ -2857,7 +2980,7 @@ export function App() {
       labPools={productPoolOptions}
       mintAmountHuman={mintAmountHuman}
       onMintAmountHuman={setMintAmountHuman}
-      onSwitchSepolia={() => void onSwitchToSepolia()}
+      onSwitchWalletNetwork={() => void onSwitchWalletNetwork()}
       onMint={() => void onMintSepoliaTestToken()}
       onWatchAsset={() => void onWatchLabAsset()}
       onUseLabPoolInApp={onUseLabPoolInApp}

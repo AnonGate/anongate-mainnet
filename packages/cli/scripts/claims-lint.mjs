@@ -20,6 +20,7 @@ const SCAN_GLOBS = [
   "docs/PROTOCOL.md",
   "docs/SEPOLIA.md",
   "docs/ENVIRONMENT.md",
+  "docs/MAINNET.md",
   "packages/cli/README.md",
   "apps/web/README.md",
   "apps/web/src/App.tsx",

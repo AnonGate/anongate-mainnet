@@ -113,8 +113,8 @@ function gateA() {
     },
     {
       id: "production_readiness_doc",
-      ok: exists("PRODUCTION_READINESS_V1.md"),
-      detail: "PRODUCTION_READINESS_V1.md",
+      ok: exists("docs/MAINNET.md"),
+      detail: "docs/MAINNET.md",
     },
   ];
   return { id: "A", name: "local-mvp", ok: checks.every((c) => c.ok), checks };
@@ -134,8 +134,8 @@ function gateB() {
     },
     {
       id: "sepolia_runbook",
-      ok: exists("SEPOLIA_EXPERIMENTAL_RUNBOOK_V1.md"),
-      detail: "SEPOLIA_EXPERIMENTAL_RUNBOOK_V1.md",
+      ok: exists("docs/SEPOLIA.md"),
+      detail: "docs/SEPOLIA.md",
     },
     {
       id: "sepolia_deployment_file",
@@ -193,7 +193,7 @@ function gateC() {
     fileOk(path.join(ceremonyVerifiersDir, `${name}_CeremonyVerifier.sol`))
   );
   const mainnetPools = readJson(path.join(root, "deployments/pools.mainnet.json"));
-  const poolsFilled = ["weth", "dai", "lusd"].every(
+  const poolsFilled = ["eth", "dai", "lusd"].every(
     (asset) => Boolean(mainnetPools?.pools?.[asset]?.pool)
   );
 
@@ -229,7 +229,7 @@ function gateC() {
     {
       id: "deploy_mainnet_script",
       ok: fileOk(path.join(contracts, "script/DeployMainnet.s.sol")),
-      detail: "DeployMainnet.s.sol + CeremonyDeployGuard",
+      detail: "DeployMainnet.s.sol + deploy-mainnet-ceremony.mjs",
     },
     {
       id: "public_docs",
@@ -239,7 +239,7 @@ function gateC() {
     {
       id: "mainnet_pool_deployed",
       ok: poolsFilled,
-      detail: "separate WETH/DAI/LUSD entries in deployments/pools.mainnet.json",
+      detail: "separate ETH/DAI/LUSD entries in deployments/pools.mainnet.json",
       manual: true,
     },
     {
@@ -271,18 +271,8 @@ function manualSteps(gates) {
   }
   steps.push({
     who: "operator",
-    step: "Complete a reviewed Phase-2 ceremony and place finals under packages/circuits/ceremony/finals/",
-    doc: "docs/PROTOCOL.md",
-  });
-  steps.push({
-    who: "operator",
-    step: "Export verifiers, deploy one mainnet pool per asset, fill deployments/pools.mainnet.json",
-    doc: "docs/PROTOCOL.md",
-  });
-  steps.push({
-    who: "operator",
-    step: "External audit before any real-user mainnet liquidity",
-    doc: "SECURITY.md",
+    step: "Fund new mainnet wallets, run deploy-mainnet-ceremony.mjs --broadcast, pin codehashes, then set clientsUnlocked true when opening the app",
+    doc: "docs/MAINNET.md",
   });
   return steps;
 }
@@ -295,7 +285,7 @@ function main() {
     ok: A.ok,
     overallVerdict: C.blocked
       ? "No-Go for mainnet — ceremony / Gate C incomplete"
-      : "Review Gate C checks manually before mainnet broadcast",
+      : "Mainnet deploy path ready — confirm registry and clientsUnlocked before opening liquidity",
     generatedAt: new Date().toISOString(),
     gates: { A, B, C },
     agentPrepared: [
@@ -308,7 +298,7 @@ function main() {
       "Docs: README, SECURITY, docs/PROTOCOL.md, docs/SEPOLIA.md",
     ],
     yourManualNext: manualSteps({ A, B, C }),
-    tip: "Mainnet stays blocked until ceremony finals, audit, and a published mainnet registry exist.",
+    tip: "Mainnet clients stay locked until a dedicated deploy fills pools.mainnet.json and clientsUnlocked is set true.",
   };
   console.log(JSON.stringify(report, null, 2));
   if (!A.ok) process.exitCode = 1;

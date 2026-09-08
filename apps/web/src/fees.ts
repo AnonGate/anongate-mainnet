@@ -2,7 +2,7 @@ import {
   feeFromPpm,
   WITHDRAW_FEE_PPM,
 } from "@absolute-privacy/sdk-core";
-import { ACTIVE_NETWORK } from "./networkConfig.ts";
+import { getActiveNetwork } from "./networkConfig.ts";
 
 export function protocolWithdrawFee(amount: bigint): bigint {
   return feeFromPpm(amount, WITHDRAW_FEE_PPM);
@@ -25,7 +25,7 @@ export async function estimateSilentExtraFee(isNative: boolean): Promise<bigint>
   const gasUnits = 400_000n;
   let gasPrice = 1_000_000_000n;
   try {
-    const res = await fetch(ACTIVE_NETWORK.rpcUrls[0]!, {
+    const res = await fetch(getActiveNetwork().rpcUrls[0]!, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({

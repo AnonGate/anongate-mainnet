@@ -128,6 +128,20 @@ export async function switchEthereumChain(params: {
   return getChainIdHex();
 }
 
+/** Ask the injected wallet to switch to the selected product network. */
+export async function switchToProductNetwork(id: "mainnet" | "sepolia"): Promise<string> {
+  if (id === "mainnet") {
+    return switchEthereumChain({
+      chainIdHex: "0x1",
+      chainName: "Ethereum",
+      rpcUrls: ["https://ethereum-rpc.publicnode.com"],
+      blockExplorerUrls: ["https://etherscan.io"],
+      nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+    });
+  }
+  return switchToSepolia();
+}
+
 /** Ask the injected wallet to switch to Sepolia (adds the chain if missing). */
 export async function switchToSepolia(): Promise<string> {
   return switchEthereumChain({
@@ -192,10 +206,36 @@ export async function sendTransaction(params: {
 
 export async function waitReceipt(
   txHash: string,
-  timeoutMs = 120_000
+  timeoutMs = 180_000
 ): Promise<{ status: string; transactionHash: string }> {
+  const start = Date.now();
+  // Wallet often sees its own txs before a public RPC catches up.
+  try {
+    const eth = getProvider();
+    while (Date.now() - start < Math.min(timeoutMs, 90_000)) {
+      const receipt = (await eth.request({
+        method: "eth_getTransactionReceipt",
+        params: [txHash],
+      })) as { status?: string; transactionHash?: string } | null;
+      if (receipt?.transactionHash || receipt?.status) {
+        if (receipt.status === "0x0") {
+          throw new Error(`transaction reverted: ${txHash}`);
+        }
+        return {
+          status: receipt.status || "0x1",
+          transactionHash: receipt.transactionHash || txHash,
+        };
+      }
+      await new Promise((r) => setTimeout(r, 1_000));
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/reverted/i.test(msg)) throw e instanceof Error ? e : new Error(msg);
+    // Fall through to public RPC polling.
+  }
   const { publicWaitReceipt } = await import("./publicRpc");
-  return publicWaitReceipt(txHash, timeoutMs);
+  const remaining = Math.max(30_000, timeoutMs - (Date.now() - start));
+  return publicWaitReceipt(txHash, remaining);
 }
 
 export function decodeAddressWord(dataHex: string): string {

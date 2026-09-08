@@ -10,7 +10,7 @@ test("checked-in Sepolia registry resolves every supported symbolic asset", () =
   const { registry } = loadSepoliaRegistry();
   assert.equal(registry.chainId, 11155111);
   assert.equal(registry.shared.treeDepth, 20);
-  assert.equal(registry.status, "deployed-depth20-ceremony-phase2-v1");
+  assert.match(registry.status, /deployed-depth20-ceremony-phase2-v1/);
   assert.equal(registry.shared.provingKeys, "ceremony-finals");
   for (const id of ["eth", "dai", "lusd"]) {
     const item = resolveSepoliaAsset(id);

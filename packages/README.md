@@ -9,4 +9,4 @@
 | `python-client` | Same protocol path via the Node CLI |
 | `relayer` | Optional local Silent-send relayer |
 
-Sepolia is live. Mainnet clients stay blocked. See the root [README](../README.md).
+Sepolia and Ethereum mainnet are live (`clientsUnlocked` on mainnet). See the root [README](../README.md).

@@ -176,7 +176,7 @@ function main() {
     version: 10,
     status: "deployed-depth20-ceremony-phase2-v1",
     warning:
-      "Depth-20 pools with Phase-2 ceremony Groth16 keys (5 contributors + Ethereum block beacon). Fees: 0.011% in / 0.04% out, 100% to feeRecipient. Not externally audited. Old local-trusted pools are obsolete.",
+      "Depth-20 pools with Phase-2 ceremony Groth16 keys (5 contributors + Ethereum block beacon). Fees: 0.011% in / 0.04% out, 100% to feeRecipient. Old local-trusted pools are obsolete.",
     policy: "MULTI_ASSET_POOLS_V1.md / CEREMONY_OPS_RUNBOOK_V1.md",
     deployer,
     shared: {

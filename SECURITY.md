@@ -1,6 +1,13 @@
 # Security
 
-This software is **experimental and not externally audited**. It is published for Sepolia testing and review. Do not deposit assets you cannot afford to lose. Mainnet is not enabled in the clients.
+This software is **experimental**. Do not deposit assets you cannot afford to lose.
+
+Live registries:
+
+- Sepolia: [`deployments/pools.sepolia.json`](deployments/pools.sepolia.json)
+- Mainnet: [`deployments/pools.mainnet.json`](deployments/pools.mainnet.json) (`clientsUnlocked: true`)
+
+See [docs/MAINNET.md](docs/MAINNET.md) and [docs/SEPOLIA.md](docs/SEPOLIA.md).
 
 ## Trust boundaries
 
@@ -19,7 +26,7 @@ Withdraw transactions reveal the recipient, amount, fee, Merkle root, and nullif
 Never commit or paste:
 
 - private keys
-- `.env` files
+- `.env` files (including `.env.sepolia`, `.env.mainnet`, `.env.mainnet.local`)
 - Recovery Codes / `.apnote` / `.apbackup`
 - `notes.json` and proof/call dumps
 

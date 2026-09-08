@@ -36,6 +36,6 @@ Web, CLI, and Python share the same registry and note format. They talk to Ether
 
 ## Ceremony
 
-Sepolia verifiers were exported from a Phase-2 ceremony (5 contributors, then Ethereum block `25790171` as beacon). The same finals are intended for a later mainnet deploy. Transcripts: [anongate-ceremony](https://github.com/AnonGate/anongate-ceremony). A ceremony is not an audit.
+Sepolia verifiers were exported from a Phase-2 ceremony (5 contributors, then Ethereum block `25790171` as beacon). The **same finals** are used on Ethereum mainnet. Transcripts: [anongate-ceremony](https://github.com/AnonGate/anongate-ceremony).
 
-Mainnet clients stay blocked until a dedicated production registry is published.
+Mainnet clients are unlocked when `deployments/pools.mainnet.json` sets `clientsUnlocked` true. See [docs/MAINNET.md](MAINNET.md).

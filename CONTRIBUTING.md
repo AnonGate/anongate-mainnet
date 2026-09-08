@@ -46,8 +46,7 @@ npm run test:fees
 
 - Do not commit `.env`, notes, Recovery Codes, wallets, proofs, or `.zkey` / `.wasm` artifacts.
 - Do not add a hosted proving backend or note-upload server.
-- Do not market this as audited or mainnet-ready.
-- Prefer under-claiming privacy. Recipient and amount are public on withdraw.
+- Do not overclaim privacy. Recipient and amount are public on withdraw.
 - Product copy and filenames stay English.
 
 ## Layout

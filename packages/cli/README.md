@@ -33,4 +33,12 @@ Also: `prove withdraw-dev` (merge two notes), `prove withdraw-partial-dev` (save
 
 tDAI / tLUSD: `--asset dai` or `--asset lusd`. ETH has no mint. `--asset weth` is rejected.
 
-Keep `notes.json` and proof files out of git. Mainnet stays blocked without an explicit experimental override.
+Keep `notes.json` and proof files out of git.
+
+## Mainnet
+
+```bash
+node ./bin/ap.mjs mainnet status --asset eth --rpc
+```
+
+Uses `deployments/pools.mainnet.json` (`clientsUnlocked: true`). Same prove / build / send flow as Sepolia with `--network mainnet`. Real funds — prefer a dedicated wallet.

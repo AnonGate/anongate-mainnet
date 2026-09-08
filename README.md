@@ -1,8 +1,13 @@
 # AnonGate — Absolute Privacy
 
-Experimental **Sepolia** shielded pools for ETH, DAI, and LUSD. Non-custodial: the contracts cannot spend your notes, and this repository does not host user secrets.
+Non-custodial shielded pools for **ETH**, **DAI**, and **LUSD** on:
 
-**This is a testnet. It is not audited. Do not use real mainnet funds.** Ethereum mainnet clients are blocked until a separate production deployment exists.
+| Network | Registry | Status |
+| --- | --- | --- |
+| **Ethereum mainnet** | [`deployments/pools.mainnet.json`](deployments/pools.mainnet.json) | Live — clients unlocked |
+| **Ethereum Sepolia** | [`deployments/pools.sepolia.json`](deployments/pools.sepolia.json) | Live testnet |
+
+The contracts cannot spend your notes. This repository does not host Recovery Codes or private keys.
 
 ## What it is
 
@@ -10,7 +15,7 @@ Each asset has its own pool (depth-20 Merkle tree). You deposit, keep a Recovery
 
 On-chain, recipient and amount are public. The protocol does **not** claim complete unlinkability.
 
-Live Sepolia addresses are in [`deployments/pools.sepolia.json`](deployments/pools.sepolia.json). Pools are Etherscan-verified. Poseidon is deployed bytecode and is not explorer-verifiable.
+Pools are Etherscan-verified. Poseidon is deployed bytecode and is not explorer-verifiable (expected).
 
 ## Repository layout
 
@@ -21,19 +26,19 @@ Live Sepolia addresses are in [`deployments/pools.sepolia.json`](deployments/poo
 | `packages/sdk-core` | Notes, Merkle helpers, backups |
 | `packages/cli` | Reference CLI (`ap`) |
 | `packages/python-client` | Same flows via the Node CLI |
-| `packages/relayer` | Optional local Silent-send relayer |
-| `apps/web` | Optional browser UI (port **5180**) |
-| `deployments/` | Published Sepolia registry (no private keys) |
+| `packages/relayer` | Optional local Silent-send relayer (Sepolia **and** Mainnet) |
+| `apps/web` | Browser UI (port **5180**) |
+| `deployments/` | Published pool registries (no private keys) |
 
 ## Can you run this after a clone?
 
-Yes. Proving keys and wasm for the live Sepolia circuits are in [`packages/circuits/ceremony/finals/`](packages/circuits/ceremony/finals/). Those files are public (anyone who proves needs them). They are not private keys or Recovery Codes.
+Yes. Proving keys and wasm are in [`packages/circuits/ceremony/finals/`](packages/circuits/ceremony/finals/). Those files are public (anyone who proves needs them). They are not private keys or Recovery Codes.
 
-The Phase-2 ceremony record (5 contributors + Ethereum beacon, same finals intended for later mainnet) is in a separate repo: [anongate-ceremony](https://github.com/AnonGate/anongate-ceremony).
+Phase-2 ceremony transcripts (5 contributors + Ethereum beacon; **same finals for Sepolia and mainnet**): [anongate-ceremony](https://github.com/AnonGate/anongate-ceremony).
 
-No `.env` is required to browse the UI. A relayer `.env` is required only for Silent send. See [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md).
+No `.env` is required to browse the UI or read pools. Relayer env files are required only for **Silent send**. See [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md).
 
-## Quick start
+## Quick start (web)
 
 Node.js 20+ is required.
 
@@ -44,34 +49,66 @@ npm install --prefix apps/web
 npm run dev --prefix apps/web
 ```
 
-The CLI prove path installs `snarkjs` with `packages/cli`. The web app copies ceremony keys on `npm run dev`.
+Open [http://127.0.0.1:5180/](http://127.0.0.1:5180/). Use the network switcher for **Mainnet** or **Sepolia**.
 
-Open [http://127.0.0.1:5180/](http://127.0.0.1:5180/). Switch MetaMask to Sepolia. ETH has no mint; tDAI / tLUSD mint from **Get tokens** in the footer.
+- **Mainnet:** real ETH / DAI / LUSD. No faucet.
+- **Sepolia:** test ETH; mint tDAI / tLUSD from the **Mint** tab.
 
-Silent send (optional):
+## Silent send (optional, both networks)
 
-```bash
-cp packages/relayer/.env.example packages/relayer/.env
-# set RELAYER_PRIVATE_KEY to a dedicated Sepolia key with a little ETH
-npm install --prefix packages/relayer
-npm start --prefix packages/relayer
-```
-
-Health check: [http://127.0.0.1:8787/health](http://127.0.0.1:8787/health)
-
-CLI (from `packages/cli`):
+Two processes, two keys, two ports — no switching:
 
 ```bash
-node ./bin/ap.mjs sepolia status --asset eth --rpc
+cd packages/relayer
+cp .env.example .env.sepolia   # then edit
+cp .env.example .env.mainnet   # then edit (different key!)
+npm install
+npm run start:both
 ```
 
-Contract tests (Foundry):
+| Network | Env file | Port | Health |
+| --- | --- | --- | --- |
+| Sepolia | `.env.sepolia` | **8787** | http://127.0.0.1:8787/health |
+| Mainnet | `.env.mainnet` | **8788** | http://127.0.0.1:8788/health |
+
+Use a **dedicated** hot wallet per network. Never reuse the deployer, fee recipient, or a Sepolia key on mainnet. Fund each with a little ETH for gas only.
+
+Full env reference: [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md).
+
+## CLI
+
+```bash
+npm install --prefix packages/cli
+
+# Sepolia
+node packages/cli/bin/ap.mjs sepolia status --asset eth --rpc
+
+# Mainnet (uses deployments/pools.mainnet.json)
+node packages/cli/bin/ap.mjs mainnet status --asset eth --rpc
+```
+
+See [`packages/cli/README.md`](packages/cli/README.md).
+
+## Python client
+
+```bash
+cd packages/python-client
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+# Unix: source .venv/bin/activate
+pip install -e .
+# Commands wrap the Node CLI — same Sepolia / mainnet registries.
+```
+
+See [`packages/python-client/README.md`](packages/python-client/README.md).
+
+## Contract tests (Foundry)
 
 ```bash
 cd packages/contracts && forge test
 ```
 
-## Fees (live Sepolia)
+## Fees (both networks)
 
 - Deposit: **0.011%** (110 ppm)
 - Withdraw floor: **0.04%** (400 ppm). Silent send must be strictly above that floor.
@@ -80,12 +117,21 @@ cd packages/contracts && forge test
 
 ## Documentation
 
-- [How to test on Sepolia](docs/SEPOLIA.md)
+- [How to use Sepolia](docs/SEPOLIA.md)
+- [Ethereum mainnet](docs/MAINNET.md)
 - [Protocol overview](docs/PROTOCOL.md)
 - [Environment files](docs/ENVIRONMENT.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
 - [Ceremony transcripts](https://github.com/AnonGate/anongate-ceremony)
+
+## Related repositories
+
+| Repo | Contents |
+| --- | --- |
+| [anongate-testnet](https://github.com/AnonGate/anongate-testnet) | This monorepo (protocol + clients) |
+| [anongate-mainnet](https://github.com/AnonGate/anongate-mainnet) | Same monorepo, mainnet-focused landing / mirror |
+| [anongate-ceremony](https://github.com/AnonGate/anongate-ceremony) | Phase-2 ceremony transcripts only |
 
 ## License
 

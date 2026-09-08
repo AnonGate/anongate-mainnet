@@ -1,5 +1,5 @@
 /**
- * Only allow withdraw calls against known Sepolia redesign pools.
+ * Only allow withdraw calls against published pool registries.
  * Never accept note secrets — calldata only.
  */
 import fs from "node:fs";
@@ -7,10 +7,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const registryPath = path.resolve(
-  __dirname,
-  "../../../deployments/pools.sepolia.json"
-);
+
+function registryPathFor(network) {
+  const file =
+    network === "mainnet" ? "pools.mainnet.json" : "pools.sepolia.json";
+  return path.resolve(__dirname, "../../../deployments", file);
+}
 
 /** withdraw / withdraw1 / withdrawPartial1 */
 export const ALLOWED_SELECTORS = new Set([
@@ -45,10 +47,19 @@ function collectAddresses(node, out) {
   }
 }
 
-export function loadPoolAllowlist() {
+export function loadPoolAllowlist(network = process.env.RELAYER_NETWORK || "sepolia") {
+  const kind = String(network || "sepolia").toLowerCase();
+  if (kind !== "sepolia" && kind !== "mainnet") {
+    throw new Error("RELAYER_NETWORK must be sepolia or mainnet");
+  }
+  const registryPath = registryPathFor(kind);
   const reg = JSON.parse(fs.readFileSync(registryPath, "utf8"));
-  if (reg.chainId !== 11155111) {
+  const expected = kind === "mainnet" ? 1 : 11155111;
+  if (reg.chainId !== expected) {
     throw new Error(`unexpected registry chainId ${reg.chainId}`);
+  }
+  if (kind === "mainnet" && !reg.pools?.eth?.pool && !reg.pools?.dai?.pool && !reg.pools?.lusd?.pool) {
+    throw new Error("mainnet registry has no pools yet — deploy first (docs/MAINNET.md)");
   }
   const pools = new Set();
   collectAddresses(reg.pools, pools);
@@ -57,6 +68,7 @@ export function loadPoolAllowlist() {
   return {
     chainId: reg.chainId,
     rpc: reg.rpc,
+    network: kind,
     pools,
   };
 }

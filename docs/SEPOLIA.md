@@ -21,9 +21,9 @@ Obsolete earlier pools remain on-chain for old notes only. New deposits must use
 3. Connect a wallet on Sepolia.
 4. Create a Recovery Code **before** depositing. Keep it offline.
 5. Deposit, then withdraw to a **different** address when you can.
-6. Footer **Get tokens** mints tDAI / tLUSD. ETH must be funded from a faucet.
+6. **Mint** tab mints tDAI / tLUSD. ETH must be funded from a faucet.
 
-Silent send needs the relayer on `127.0.0.1:8787` and a funded relayer key.
+Silent send needs the relayer on `127.0.0.1:8787` (`packages/relayer/.env.sepolia`) and a funded relayer key. For both networks at once: `npm run start:both`.
 
 ## CLI
 
@@ -33,7 +33,7 @@ From `packages/cli`, after `npm install` and an SDK build:
 node ./bin/ap.mjs sepolia status --asset eth --rpc
 ```
 
-Create a note, prove deposit, broadcast, sync state, then prove a 1-in withdraw. See `packages/cli/README.md`. Mainnet commands stay blocked.
+Create a note, prove deposit, broadcast, sync state, then prove a 1-in withdraw. See `packages/cli/README.md`. For Ethereum mainnet, see [MAINNET.md](MAINNET.md).
 
 ## Fees
 
@@ -42,4 +42,4 @@ Create a note, prove deposit, broadcast, sync state, then prove a 1-in withdraw.
 
 ## Honesty
 
-Unaudited. Ceremony Phase-2 keys (5 contributors + Ethereum block beacon). Transcripts: [anongate-ceremony](https://github.com/AnonGate/anongate-ceremony). Empty trees at v11 deploy. Privacy labels in the UI describe set size only — they are not a cryptographic guarantee.
+Ceremony Phase-2 keys (5 contributors + Ethereum block beacon). Transcripts: [anongate-ceremony](https://github.com/AnonGate/anongate-ceremony). Empty trees at v11 deploy. Privacy labels in the UI describe set size only — they are not a cryptographic guarantee.

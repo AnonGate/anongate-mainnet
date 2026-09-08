@@ -11,7 +11,10 @@ __pycache__/
 .env
 .env.*
 !.env.example
+!packages/relayer/.env.example
 packages/relayer/.env
+packages/relayer/.env.sepolia
+packages/relayer/.env.mainnet
 *.pem
 *.keystore
 *.r1cs
@@ -51,9 +54,11 @@ packages/cli/obsolete-harness/.tmp-state.json
 packages/cli/.adversarial-final/
 payment.addr.json
 
+.env.mainnet.local
+.env.etherscan
+.mainnet-deploy/
 .env.sepolia-harness
 .env.sepolia-validation
 .env.sepolia-battery
 .env.sepolia-privacy-harness
 packages/cli/.sepolia-live-battery/
-

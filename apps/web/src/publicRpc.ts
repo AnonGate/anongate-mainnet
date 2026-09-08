@@ -1,11 +1,15 @@
-import { ACTIVE_NETWORK } from "./networkConfig";
+import { getActiveNetwork } from "./networkConfig";
 
-/** JSON-RPC via public RPC — no wallet required (reads / receipts). */
-export async function publicRpc(
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/** Try each configured RPC (and a couple of public fallbacks) until one answers. */
+async function publicRpcOnce(
+  rpcUrl: string,
   method: string,
-  params: unknown[] = []
+  params: unknown[]
 ): Promise<unknown> {
-  const rpcUrl = ACTIVE_NETWORK.rpcUrls[0];
   const res = await fetch(rpcUrl, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -22,6 +26,41 @@ export async function publicRpc(
   return body.result;
 }
 
+function rpcCandidates(): string[] {
+  const primary = getActiveNetwork().rpcUrls;
+  const extras =
+    getActiveNetwork().kind === "mainnet"
+      ? [
+          "https://cloudflare-eth.com",
+          "https://ethereum.publicnode.com",
+          "https://1rpc.io/eth",
+        ]
+      : [
+          "https://rpc.sepolia.org",
+          "https://ethereum-sepolia.publicnode.com",
+        ];
+  return [...new Set([...primary, ...extras])];
+}
+
+/** JSON-RPC via public RPC — no wallet required (reads / receipts). */
+export async function publicRpc(
+  method: string,
+  params: unknown[] = []
+): Promise<unknown> {
+  const urls = rpcCandidates();
+  let lastErr: unknown;
+  for (const rpcUrl of urls) {
+    try {
+      return await publicRpcOnce(rpcUrl, method, params);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error
+    ? lastErr
+    : new Error(String(lastErr ?? "RPC failed"));
+}
+
 export async function publicEthCall(params: {
   to: string;
   data: string;
@@ -34,20 +73,33 @@ export async function publicEthCall(params: {
 
 export async function publicWaitReceipt(
   txHash: string,
-  timeoutMs = 120_000
+  timeoutMs = 180_000
 ): Promise<{ status: string; transactionHash: string }> {
   const start = Date.now();
+  let lastErr: unknown;
   while (Date.now() - start < timeoutMs) {
-    const receipt = (await publicRpc("eth_getTransactionReceipt", [
-      txHash,
-    ])) as { status: string; transactionHash: string } | null;
-    if (receipt) {
-      if (receipt.status === "0x0") {
-        throw new Error(`transaction reverted: ${txHash}`);
+    for (const rpcUrl of rpcCandidates()) {
+      try {
+        const receipt = (await publicRpcOnce(rpcUrl, "eth_getTransactionReceipt", [
+          txHash,
+        ])) as { status: string; transactionHash: string } | null;
+        if (receipt) {
+          if (receipt.status === "0x0") {
+            throw new Error(`transaction reverted: ${txHash}`);
+          }
+          return receipt;
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (/reverted/i.test(msg)) throw e instanceof Error ? e : new Error(msg);
+        lastErr = e;
       }
-      return receipt;
     }
-    await new Promise((r) => setTimeout(r, 800));
+    await sleep(1_000);
   }
-  throw new Error(`timeout waiting for ${txHash}`);
+  throw new Error(
+    `timeout waiting for ${txHash}${
+      lastErr instanceof Error ? ` (${lastErr.message})` : ""
+    }`
+  );
 }

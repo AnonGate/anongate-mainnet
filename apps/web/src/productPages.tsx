@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import type { LocalNoteRecord, SealedBackupArtifacts } from "./storage";
 import { baseUnitsToHuman } from "./amountFormat";
 import { shortHex } from "./guideLogic";
-import { ACTIVE_NETWORK, type ProductNetworkId } from "./networkConfig";
+import { networkById, type ProductNetworkId } from "./networkConfig";
 import { RecoveryBackupModal } from "./RecoveryBackupModal";
 import { AssetPoolSelect } from "./AssetPoolSelect";
 import { NetworkSelect } from "./NetworkSelect";
@@ -29,9 +29,7 @@ type NoteEntry = { n: LocalNoteRecord; index: number };
 function BrandMark() {
   return (
     <span className="brand-mark" aria-hidden="true">
-      <svg viewBox="0 0 24 24">
-        <path d="M12 2 4 6v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V6l-8-4Z" />
-      </svg>
+      <img src="/brand/logo-mark.png" alt="" width={34} height={34} />
     </span>
   );
 }
@@ -132,7 +130,7 @@ export type ProductUiProps = {
   labPools: PoolOption[];
   mintAmountHuman: string;
   onMintAmountHuman: (v: string) => void;
-  onSwitchSepolia: () => void;
+  onSwitchWalletNetwork: () => void;
   onMint: () => void;
   onWatchAsset: () => void;
   onUseLabPoolInApp: (id: string) => void;
@@ -365,6 +363,7 @@ function NoteCards(props: {
 }
 
 function PoolBar(props: ProductUiProps) {
+  const network = networkById(props.selectedNetwork);
   return (
     <div className="pool-bar">
       <div className="field pool-bar-select">
@@ -387,7 +386,7 @@ function PoolBar(props: ProductUiProps) {
             props.poolAddress.length === 42 &&
             !/^0x0+$/i.test(props.poolAddress) ? (
               <ExplorerLink
-                href={ACTIVE_NETWORK.explorerAddress(props.poolAddress)}
+                href={network.explorerAddress(props.poolAddress)}
                 label="Open pool contract in explorer"
               />
             ) : null}
@@ -422,6 +421,9 @@ export function ProductShell(props: ProductUiProps) {
     { id: "deposit", label: "Deposit" },
     { id: "withdraw", label: "Withdraw" },
     { id: "recover", label: "Recover" },
+    ...(props.selectedNetwork === "sepolia"
+      ? ([{ id: "lab", label: "Mint" }] as { id: AppPage; label: string }[])
+      : []),
   ];
   const [depositWalletHint, setDepositWalletHint] = useState(false);
 
@@ -448,7 +450,10 @@ export function ProductShell(props: ProductUiProps) {
               <h1 className="brand-sm">
                 <span>Anon<em>Gate</em></span> <HelpTip tipKey="brand" />
               </h1>
-              <p className="tagline-sm">Absolute Privacy protocol Testnet</p>
+              <p className="tagline-sm">
+                Absolute Privacy protocol ·{" "}
+                {props.selectedNetwork === "mainnet" ? "Mainnet" : "Sepolia"}
+              </p>
             </div>
           </div>
           <div className="header-session">
@@ -522,7 +527,10 @@ export function ProductShell(props: ProductUiProps) {
           ) : null}
 
           <div className="stage-deck">
-      <nav className="tabs product-tabs" aria-label="Primary">
+      <nav
+        className={`tabs product-tabs${props.selectedNetwork === "sepolia" ? " has-lab" : ""}`}
+        aria-label="Primary"
+      >
         {nav.map((item) => (
           <span key={item.id} className="tab-with-help">
             <button
@@ -538,7 +546,9 @@ export function ProductShell(props: ProductUiProps) {
                   ? "tabDeposit"
                   : item.id === "withdraw"
                     ? "tabWithdraw"
-                    : "tabRecover"
+                    : item.id === "lab"
+                      ? "getTokens"
+                      : "tabRecover"
               }
             />
           </span>
@@ -555,7 +565,7 @@ export function ProductShell(props: ProductUiProps) {
         </div>
       ) : null}
 
-      <div className="workspace" key={props.page}>
+      <div className="workspace" key={`${props.page}:${props.selectedNetwork}`}>
         {props.page !== "lab" ? <PoolBar {...props} /> : null}
 
         {props.page === "deposit" ? (
@@ -1010,13 +1020,17 @@ export function ProductShell(props: ProductUiProps) {
           <section className="section panel">
             <div className="page-head">
               <h2>
-                Get tokens <HelpTip tipKey="getTokens" />
+                Mint <HelpTip tipKey="getTokens" />
               </h2>
               <p>
-                {props.poolOptions.find((p) => p.id === props.selectedPoolId)
-                  ?.native
-                  ? "ETH uses native balance — no mint. Fund your wallet, then Deposit."
-                  : "Mint experimental test tokens, then Deposit. Always save your Recovery Code."}
+                {props.selectedNetwork === "mainnet"
+                  ? props.poolOptions.find((p) => p.id === props.selectedPoolId)?.native
+                    ? "ETH uses native balance — no mint. Fund your wallet on Ethereum mainnet, then Deposit."
+                    : "Mainnet DAI and LUSD are canonical tokens. There is no test mint. Transfer tokens to this wallet, then Deposit."
+                  : props.poolOptions.find((p) => p.id === props.selectedPoolId)
+                      ?.native
+                    ? "ETH uses native balance — no mint. Fund your wallet, then Deposit."
+                    : "Mint experimental test tokens, then Deposit. Always save your Recovery Code."}
               </p>
             </div>
             <div className="stack flow-stack">
@@ -1024,7 +1038,7 @@ export function ProductShell(props: ProductUiProps) {
                 <button
                   className="btn"
                   disabled={props.busy}
-                  onClick={props.onSwitchSepolia}
+                  onClick={props.onSwitchWalletNetwork}
                 >
                   Switch wallet to network
                 </button>
@@ -1034,6 +1048,7 @@ export function ProductShell(props: ProductUiProps) {
                   Asset
                 </LabelWithHelp>
                 <AssetPoolSelect
+                  key={props.selectedNetwork}
                   id="labPool"
                   options={props.poolOptions}
                   value={props.selectedPoolId}
@@ -1046,6 +1061,22 @@ export function ProductShell(props: ProductUiProps) {
                 <p className="meta">
                   Native ETH pool — deposit spends ETH from your wallet.
                 </p>
+              ) : props.selectedNetwork === "mainnet" ? (
+                <>
+                  <p className="meta">
+                    Canonical mainnet token — no faucet. Add the token to MetaMask
+                    if you want it listed, then deposit from your balance.
+                  </p>
+                  <div className="actions">
+                    <button
+                      className="btn secondary"
+                      disabled={props.busy || !props.account}
+                      onClick={props.onWatchAsset}
+                    >
+                      Add token to MetaMask
+                    </button>
+                  </div>
+                </>
               ) : (
                 <>
                   <div className="field">
@@ -1094,6 +1125,14 @@ export function ProductShell(props: ProductUiProps) {
           <p className="meta latest-tx">
             Last tx: {props.latestTx.label} · {props.latestTx.state} ·{" "}
             {shortHex(props.latestTx.hash, 10, 6)}
+            {props.latestTx.hash.startsWith("0x") ? (
+              <ExplorerLink
+                href={networkById(props.selectedNetwork).explorerTx(
+                  props.latestTx.hash
+                )}
+                label="Open transaction in explorer"
+              />
+            ) : null}
           </p>
         ) : null}
           </div>
@@ -1164,9 +1203,12 @@ export function ProductShell(props: ProductUiProps) {
                 </p>
               </div>
               <p>
-                AnonGate&apos;s Absolute Privacy protocol Testnet. Non-custodial shielded
-                pool. Session-only. Recovery Code stays with you — this origin
-                never stores spend notes.
+                AnonGate&apos;s Absolute Privacy protocol
+                {props.selectedNetwork === "mainnet"
+                  ? " on Ethereum mainnet"
+                  : " on Sepolia"}
+                . Non-custodial shielded pool. Session-only. Recovery Code stays
+                with you — this origin never stores spend notes.
               </p>
             </div>
             <div className="foot-cols">
@@ -1180,13 +1222,6 @@ export function ProductShell(props: ProductUiProps) {
                 </button>
                 <button type="button" className="foot-link" onClick={() => props.onPage("recover")}>
                   Recover
-                </button>
-                <button
-                  type="button"
-                  className="foot-link"
-                  onClick={() => props.onPage(props.page === "lab" ? "deposit" : "lab")}
-                >
-                  {props.page === "lab" ? "Back to app" : "Get tokens"}
                 </button>
               </div>
               <div>

@@ -84,9 +84,10 @@ export function computeGuideStep(params: {
     return {
       id: "network",
       number: 2,
-      title: "Switch to Sepolia",
-      summary: "This dry-run uses the public Sepolia test network (chain id 11155111).",
-      why: "Mainnet is blocked until the ceremony. Local Anvil (31337) also works for developers.",
+      title: "Match the app network",
+      summary:
+        "Switch your wallet to the same chain the app selected (Mainnet = 1, Sepolia = 11155111).",
+      why: "Deposits and withdrawals fail if the wallet chain does not match the selected pool registry.",
     };
   }
 

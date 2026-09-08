@@ -3,47 +3,109 @@
   "version": 1,
   "chainId": 1,
   "network": "ethereum-mainnet",
-  "status": "blocked — ceremony required; addresses null until per-asset DeployMainnet",
-  "policy": "See docs/PROTOCOL.md",
+  "status": "deployed-depth20-ceremony-phase2-v1-clients-unlocked",
+  "clientsUnlocked": true,
+  "warning": "Depth-20 pools with Phase-2 ceremony Groth16 keys (same finals as Sepolia). Fees: 0.011% in / 0.04% out, 100% to feeRecipient. Clients are unlocked — real funds.",
+  "policy": "See docs/PROTOCOL.md and docs/MAINNET.md",
+  "rpc": "https://ethereum-rpc.publicnode.com",
+  "deployer": "0x6e82775f89d255B8bd93717a803ACa79079175B7",
   "shared": {
-    "poseidon": null,
-    "depositVerifier": null,
-    "transferVerifier": null,
-    "withdrawVerifier": null,
-    "opsFeeRecipient": null,
+    "poseidon": "0xB4cdAa02c73de2C8968333D39f576144b8CFd664",
+    "depositRawVerifier": "0x2aeef0396547916FdeD0e22540191662989DA327",
+    "depositVerifier": "0x56a7Cd15f2272dD6D630cb159f95c1D110FC627C",
+    "withdrawRawVerifier": "0x676D1f23A9DEB89855e9CC85616f38B871371b40",
+    "withdrawVerifier": "0x03a04f48396E34fdA06eeDD778e31B2896134101",
+    "withdraw1RawVerifier": "0x022D406e8A9529aa70f93b4e01a8f96ACdd5623e",
+    "withdraw1Verifier": "0x57ABC8539C8178FC01C8a3ac96BF8196caF04ec6",
+    "withdrawPartialRawVerifier": "0x30EbBe5217Db8e3d4d567a0165E12EC3dA9111A6",
+    "withdrawPartialVerifier": "0xBFe6F17595f40fd8975A7BDBb7FB77Bb13c4e5B7",
+    "opsFeeRecipient": "0xbcDD1741f5c42066c34E80f8F25e21769028f621",
+    "feeRecipient": "0xbcDD1741f5c42066c34E80f8F25e21769028f621",
+    "amountBits": 128,
+    "amountBitsNote": "Num2Bits/LessEqThan width for value/amount/fee. Max ~3.4e20 tokens at 18 decimals.",
     "treeDepth": 20,
     "rootHistorySize": 64,
-    "feesBps": {
-      "deposit": 8,
-      "transfer": 2,
-      "withdraw": 4
+    "feesPpm": {
+      "deposit": 110,
+      "transfer": 0,
+      "withdraw": 400
     },
     "rewardSharesBps": {
-      "liquidity": 6000,
-      "ops": 2500,
-      "reserve": 1500
+      "liquidity": 0,
+      "ops": 0,
+      "reserve": 0
+    },
+    "gasRebateWei": "0",
+    "tokenRebateAmount": "0",
+    "gasRebateNote": "Disabled. 100% of protocol fees (and silent extra) are pushed to feeRecipient in the same tx.",
+    "nativeEth": true,
+    "nativeEthNote": "Registry key `eth` is native ETH (asset address zero). DAI and LUSD are canonical ERC-20s.",
+    "transferRemoved": true,
+    "transferFeeBps": 0,
+    "unlinkability": {
+      "spentLeafIndicesPublic": false,
+      "publicFeeData": "abi.encode(uint256 fee)",
+      "circuitRevisionWithdraw": 3,
+      "claim": "On-chain observers cannot cryptographically bind a spend to a deposit leaf index. Complete unlinkability is NOT claimed."
+    },
+    "provingKeys": "ceremony-finals",
+    "ceremonyStatus": "phase2-final-mainnet",
+    "ceremonyNote": "Verifiers must be exported from packages/circuits/ceremony/finals (same files as Sepolia). Contributors: eduadiez, jasmine, roman, dan, evan. Beacon: Ethereum block 25790171. Transcripts: https://github.com/AnonGate/anongate-ceremony",
+    "localTrustedKeys": false
+  },
+  "pools": {
+    "eth": {
+      "pool": "0x453ef841EBcB838De11B20cb9739Bc769a0a1a30",
+      "assetId": "eth",
+      "asset": "0x0000000000000000000000000000000000000000",
+      "assetSymbol": "ETH",
+      "assetDecimals": 18,
+      "assetSource": "native",
+      "native": true,
+      "treeDepth": 20
+    },
+    "dai": {
+      "pool": "0xD35828b55EFDFD78F742827e0C6Ebe1492441f13",
+      "assetId": "dai",
+      "asset": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+      "assetSymbol": "DAI",
+      "assetDecimals": 18,
+      "assetSource": "canonical-mainnet",
+      "treeDepth": 20
+    },
+    "lusd": {
+      "pool": "0x55cbe1d0B6D5Ea13833d6500D3C3C1088A32f0E4",
+      "assetId": "lusd",
+      "asset": "0x5f98805A4E8be255a32880FDeC7F6728C6568bA0",
+      "assetSymbol": "LUSD",
+      "assetDecimals": 18,
+      "assetSource": "canonical-mainnet",
+      "treeDepth": 20
     }
   },
   "verification": {
     "externalBytecodeReview": null,
     "forbiddenVerifierRuntimeCodehashes": []
   },
-  "pools": {
-    "weth": {
-      "pool": null,
-      "assetId": "weth",
-      "asset": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
-    },
-    "dai": {
-      "pool": null,
-      "assetId": "dai",
-      "asset": "0x6B175474E89094C44Da98b954EedeAC495271d0F"
-    },
-    "lusd": {
-      "pool": null,
-      "assetId": "lusd",
-      "asset": "0x5f98805A4E8be255a32880FDeC7F6728C6568bA0"
-    }
+  "deployment": {
+    "redesign": "docs/PROTOCOL.md",
+    "amountBits": 128,
+    "gasRebate": false,
+    "nativeEth": true,
+    "transferRemoved": true,
+    "unlinkability": true,
+    "treeDepth": 20,
+    "localTrustedKeys": false,
+    "ceremonyComplete": true,
+    "ceremonyAudited": false,
+    "deployedAt": "2026-09-08T11:02:38.243Z",
+    "deployer": "0x6e82775f89d255B8bd93717a803ACa79079175B7",
+    "feePush": true,
+    "provingKeys": "ceremony-finals",
+    "etherscanVerified": true,
+    "solc": "0.8.24+commit.e67f0147",
+    "viaIr": true,
+    "optimizerRuns": 200
   },
-  "notes": "Template only until deployment. After external bytecode review, set status=deployed-accepted, record its evidence URI in verification.externalBytecodeReview, and run ap launch verify-deployment. No cross-asset redeem."
+  "notes": "Ceremony Phase-2 mainnet. Deposit 110 ppm / withdraw 400 ppm. Clients unlocked — real funds."
 }

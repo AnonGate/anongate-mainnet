@@ -29,10 +29,10 @@ const addresses = {
   withdraw1Verifier: addr(4),
   withdrawPartialVerifier: addr(5),
   opsFeeRecipient: addr(6),
-  weth: addr(10),
+  eth: "0x0000000000000000000000000000000000000000",
   dai: addr(11),
   lusd: addr(12),
-  wethPool: addr(20),
+  ethPool: addr(20),
   daiPool: addr(21),
   lusdPool: addr(22),
   depositRaw: addr(30),
@@ -114,7 +114,7 @@ function writeFixture() {
     version: 1,
     chainId: 1,
     network: "ethereum-mainnet",
-    assets: ["weth", "dai", "lusd"].map((id) => ({
+    assets: ["eth", "dai", "lusd"].map((id) => ({
       id,
       symbol: id.toUpperCase(),
       decimals: 18,
@@ -146,7 +146,7 @@ function writeFixture() {
       forbiddenVerifierRuntimeCodehashes: [],
     },
     pools: {
-      weth: { pool: addresses.wethPool, assetId: "weth", asset: addresses.weth },
+      eth: { pool: addresses.ethPool, assetId: "eth", asset: addresses.eth },
       dai: { pool: addresses.daiPool, assetId: "dai", asset: addresses.dai },
       lusd: { pool: addresses.lusdPool, assetId: "lusd", asset: addresses.lusd },
     },
@@ -184,7 +184,7 @@ function metadata(circuit) {
 
 async function startRpc({ mismatchAsset = false } = {}) {
   const poolByAddress = new Map([
-    [addresses.wethPool.toLowerCase(), "weth"],
+    [addresses.ethPool.toLowerCase(), "eth"],
     [addresses.daiPool.toLowerCase(), "dai"],
     [addresses.lusdPool.toLowerCase(), "lusd"],
   ]);
@@ -196,7 +196,7 @@ async function startRpc({ mismatchAsset = false } = {}) {
   );
   const code = new Map([
     [addresses.poseidon.toLowerCase(), runtime.poseidon],
-    ...[addresses.wethPool, addresses.daiPool, addresses.lusdPool].map((a) => [
+    ...[addresses.ethPool, addresses.daiPool, addresses.lusdPool].map((a) => [
       a.toLowerCase(),
       runtime.pool,
     ]),
@@ -246,7 +246,7 @@ async function startRpc({ mismatchAsset = false } = {}) {
         if (verifier && signature === "ceremonyMetadata()") response = metadata(verifier[0]);
         else if (verifier && signature === "rawVerifier()") response = result(addressWord(verifier[1]));
         else if (poolId && signature === "poolAsset()") {
-          response = result(addressWord(mismatchAsset && poolId === "dai" ? addresses.weth : addresses[poolId]));
+          response = result(addressWord(mismatchAsset && poolId === "dai" ? addresses.eth : addresses[poolId]));
         } else if (poolId && signature === "poseidon()") response = result(addressWord(addresses.poseidon));
         else if (poolId && signature === "depositVerifier()") response = result(addressWord(addresses.depositVerifier));
         else if (poolId && signature === "withdrawVerifier()") response = result(addressWord(addresses.withdrawVerifier));
@@ -312,7 +312,7 @@ test("rejects template registries before making an RPC request", async (t) => {
   const { paths, pools } = writeFixture();
   t.after(() => fs.rmSync(paths.root, { recursive: true, force: true }));
   pools.status = "blocked — ceremony required";
-  pools.pools.weth.pool = null;
+  pools.pools.eth.pool = null;
   pools.verification.externalBytecodeReview = null;
   fs.writeFileSync(paths.pools, JSON.stringify(pools));
   const report = await verifyDeployment({
@@ -326,5 +326,5 @@ test("rejects template registries before making an RPC request", async (t) => {
   assert.equal(report.phase, "input");
   assert.match(report.errors.join("\n"), /deployed-accepted/);
   assert.match(report.errors.join("\n"), /externalBytecodeReview/);
-  assert.match(report.errors.join("\n"), /pools\.weth\.pool/);
+  assert.match(report.errors.join("\n"), /pools\.eth\.pool/);
 });

@@ -1,18 +1,6 @@
 {
-  "format": "absolute-privacy-deployment",
-  "version": 1,
-  "chainId": 1,
   "network": "ethereum-mainnet",
-  "status": "blocked — ceremony required",
-  "warning": "Do not fill or deploy until packages/circuits/ceremony/manifest.expected.json is ceremony-final. See PRODUCTION_READINESS_V1.md Gate C.",
-  "pool": null,
-  "asset": null,
-  "poseidon": null,
-  "depositVerifier": null,
-  "transferVerifier": null,
-  "withdrawVerifier": null,
-  "opsFeeRecipient": null,
-  "treeDepth": 20,
-  "ceremonyManifest": "packages/circuits/ceremony/manifest.expected.json",
-  "notes": "Prefer deployments/pools.mainnet.json (one pool per asset: weth/dai/lusd). This file is a legacy single-pool stub. See MULTI_ASSET_POOLS_V1.md."
+  "chainId": 1,
+  "status": "legacy-stub — use deployments/pools.mainnet.json",
+  "notes": "Prefer deployments/pools.mainnet.json (native ETH + DAI + LUSD). This file is a leftover single-pool stub and is not used by current clients."
 }

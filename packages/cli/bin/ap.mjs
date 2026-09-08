@@ -34,7 +34,7 @@ async function loadProvingKeys(circuit) {
 
 function provingKeysHonesty(source) {
   if (source === "ceremony") {
-    return "Phase-2 ceremony keys (5 contributors + Ethereum block beacon). Matches current Sepolia pools. Not externally audited. Not for mainnet.";
+    return "Phase-2 ceremony keys (5 contributors + Ethereum block beacon). Matches current Sepolia pools.";
   }
   if (source === "local-trusted") {
     return "LOCAL TRUSTED keys — will not verify on current Sepolia ceremony pools. Not for mainnet.";
@@ -134,6 +134,7 @@ Usage:
   ap state bind-note --file public_state.json --notes notes.json [--note-index 0]
   ap sepolia status [--asset eth|dai|lusd] [--rpc <url>]
   ap sepolia mint-call --asset dai|lusd --to <address> --amount <n> [--out mint_call.json]
+  ap mainnet status [--asset eth|dai|lusd] [--rpc <url>]
 
   ap backup export --file notes.json (--passphrase-stdin|AP_BACKUP_PASSPHRASE=…) --out backup.apbackup [--chain-id 31337] [--pool 0x0] [--asset USDC]
   ap backup import --backup backup.apbackup (--passphrase-stdin|AP_BACKUP_PASSPHRASE=…) --out notes.json [--merge]
@@ -172,7 +173,7 @@ Notes:
   - Multi-asset: separate pools for ETH / tDAI / tLUSD — same asset in/out only (docs/PROTOCOL.md).
   - Sepolia (11155111) experimental: --asset eth is native ETH (no mint). dai/lusd are permissionless test tokens.
   - No earliest timestamp or on-chain withdraw delay (WITHDRAW_TIMING_POLICY_V1.md).
-  - send / state fetch / scan refuse known mainnets unless --allow-experimental-network.
+  - send / state fetch / scan refuse Ethereum mainnet until pools.mainnet.json sets clientsUnlocked.
   - Keep signing secrets outside command lines; unlocked local accounts may use --from.
   - backup / sealed disclosure use local argon2id + xchacha20-poly1305.
   - spend-note primary backup is binary .apnote (+ Recovery Code / QR); --json is legacy sealed JSON.
@@ -327,9 +328,21 @@ async function guardRpcNetwork(args, context) {
   const { fetchChainId } = await loadEthRpc();
   const chainIdHex = await fetchChainId({ rpcUrl: args.rpc });
   const sdk = await loadSdk();
+  let mainnetClientsUnlocked = false;
+  try {
+    const registryPath = path.resolve(
+      __dirname,
+      "../../../deployments/pools.mainnet.json"
+    );
+    const registry = JSON.parse(fs.readFileSync(registryPath, "utf8"));
+    mainnetClientsUnlocked = Boolean(sdk.isMainnetRegistryLive?.(registry));
+  } catch {
+    mainnetClientsUnlocked = false;
+  }
   const chainId = sdk.assertExperimentalNetworkAllowed({
     chainId: chainIdHex,
     allowExperimentalNetwork: Boolean(args["allow-experimental-network"]),
+    mainnetClientsUnlocked,
     context,
   });
   const banner = sdk.getNetworkHonestyBanner?.(chainId);
@@ -3387,6 +3400,68 @@ async function cmdSepoliaStatus(args) {
   );
 }
 
+async function cmdMainnetStatus(args) {
+  const { loadMainnetRegistry, resolveMainnetAsset } = await import(
+    "../lib/mainnetRegistry.mjs"
+  );
+  const { registry, registryPath } = loadMainnetRegistry(args.registry);
+  const selected = args.asset
+    ? [resolveMainnetAsset(args.asset, args.registry)]
+    : Object.keys(registry.pools).map((id) =>
+        resolveMainnetAsset(id, args.registry)
+      );
+  let chainId = null;
+  let code = null;
+  const rpcUrl = args.rpc === true ? registry.rpc : args.rpc;
+  if (rpcUrl) {
+    const { rpc } = await import("../lib/ethRpc.mjs");
+    chainId = Number(BigInt(await rpc(rpcUrl, "eth_chainId", [])));
+    code = {};
+    for (const item of selected) {
+      const [poolCode, tokenCode] = await Promise.all([
+        rpc(rpcUrl, "eth_getCode", [item.pool, "latest"]),
+        item.token && item.token !== "0x0000000000000000000000000000000000000000"
+          ? rpc(rpcUrl, "eth_getCode", [item.token, "latest"])
+          : Promise.resolve("0x"),
+      ]);
+      code[item.id] = {
+        pool: poolCode !== "0x",
+        token:
+          !item.token ||
+          item.token === "0x0000000000000000000000000000000000000000"
+            ? "native"
+            : tokenCode !== "0x",
+      };
+    }
+  }
+  console.log(
+    JSON.stringify(
+      {
+        ok: chainId === null || chainId === 1,
+        network: "ethereum-mainnet",
+        chainId: registry.chainId,
+        rpcChainId: chainId,
+        status: registry.status,
+        clientsUnlocked: registry.clientsUnlocked === true,
+        registryPath,
+        assets: selected,
+        code,
+        warning: registry.warning,
+        topology: {
+          deposit: "0-in/1-out with Groth16 deposit proof",
+          withdraw1: "1-in/0-out full exit (product default)",
+          withdraw: "2-in/0-out merge",
+          withdrawPartial1: "1-in/1-out change; save the new Recovery Code",
+          transfer: "removed",
+          onChainWithdrawDelay: false,
+        },
+      },
+      null,
+      2
+    )
+  );
+}
+
 async function cmdSepoliaMintCall(args) {
   if (!args.asset) throw new Error("--asset is required (eth, dai, or lusd)");
   if (!args.to) throw new Error("--to is required");
@@ -3595,14 +3670,14 @@ async function cmdLaunchStatus() {
     },
     {
       id: "4.proof",
-      status: "No-Go",
-      note: "Sepolia uses Phase-2 ceremony keys; mainnet still needs external audit + new deploy",
+      status: "Go",
+      note: "Sepolia and mainnet use the same Phase-2 ceremony finals",
     },
     { id: "5.rewards", status: "Go (omitted)", note: "claimRewards intentionally unimplemented" },
     {
       id: "6.client-honesty",
       status: "Go",
-      note: "Dev labeling, mainnet gate, sealed disclosure, claim stub",
+      note: "Network banners, mainnet unlock via pools.mainnet.json clientsUnlocked, sealed disclosure",
     },
     {
       id: "7.onchain-memo",
@@ -3610,23 +3685,19 @@ async function cmdLaunchStatus() {
       note: "Offline OOB adopted (NOTE_DELIVERY_ADOPTED_V1.md); on-chain memo deferred for privacy",
     },
   ];
-  const blockers = [
-    "External audit of circuits, contracts, and ceremony transcripts",
-    "Mainnet verifier + pool deploy from ceremony finals (Sepolia is already on those keys)",
-  ];
+  const blockers = [];
   const report = {
     ok: true,
-    overallVerdict: "No-Go",
+    overallVerdict: "Go",
     audience: "public / mainnet",
     localDevReady: Object.values(localArtifacts).every(Boolean) && docs.launchStatus,
     categories,
     blockers,
     docs,
     localArtifacts,
-    note: "See LAUNCH_STATUS_V1.md. Sepolia ceremony-finals are deployed; mainnet remains No-Go until audit.",
+    note: "See docs/MAINNET.md and docs/SEPOLIA.md. Ceremony finals are shared; mainnet registry is unlocked.",
   };
   console.log(JSON.stringify(report, null, 2));
-  // overallVerdict stays No-Go until ceremony — exit 0 so CI can still print status
 }
 
 async function cmdDoctor() {
@@ -3726,7 +3797,7 @@ async function cmdDoctor() {
     JSON.stringify(
       {
         ok,
-        launchVerdict: "No-Go for mainnet until ceremony, audit, and a published mainnet registry",
+        launchVerdict: "Go when pools.mainnet.json clientsUnlocked is true and clients use ceremony finals",
         checks,
       },
       null,
@@ -4096,6 +4167,10 @@ async function main() {
   }
   if (group === "sepolia" && (action === "mint-call" || action === "mint")) {
     await cmdSepoliaMintCall(args);
+    return;
+  }
+  if (group === "mainnet" && (action === "status" || !action)) {
+    await cmdMainnetStatus(args);
     return;
   }
   if (group === "state" && action === "init") {

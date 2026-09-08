@@ -32,7 +32,8 @@ const REPO_ROOT = path.resolve(__dirname, "../../..");
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 const CODEHASH = /^0x[0-9a-fA-F]{64}$/;
 const FORBIDDEN = /(?:^|[_/\\.\s-])(dev|trusted|practice|mock|local|template)(?:[_/\\.\s-]|$)/i;
-const EXPECTED_ASSETS = Object.freeze(["weth", "dai", "lusd"]);
+const EXPECTED_ASSETS = Object.freeze(["eth", "dai", "lusd"]);
+const NATIVE_ETH = "0x0000000000000000000000000000000000000000";
 const ADAPTER_MAGIC = keccakText("ABSOLUTE_PRIVACY_CEREMONY_ADAPTER_V1");
 
 function keccakText(value) {
@@ -61,11 +62,14 @@ function readJson(filePath, label) {
   }
 }
 
-function requireAddress(value, label) {
+function requireAddress(value, label, { allowNative = false } = {}) {
   if (isPlaceholder(value) || !ADDRESS.test(String(value))) {
     throw new Error(`${label} must be a non-null 20-byte address`);
   }
-  if (/^0x0{40}$/i.test(value)) throw new Error(`${label} cannot be zero`);
+  if (/^0x0{40}$/i.test(value)) {
+    if (allowNative) return NATIVE_ETH;
+    throw new Error(`${label} cannot be zero`);
+  }
   return String(value).toLowerCase();
 }
 
@@ -202,8 +206,13 @@ function validateInputs({ assets, pools, manifest, repoRoot }) {
     if (!pool) errors.push(`pools: missing ${key}`);
     if (pool?.assetId !== key) errors.push(`pools.${key}.assetId must equal ${key}`);
     try {
-      const assetAddress = requireAddress(asset?.address, `assets.${key}.address`);
-      const poolAsset = requireAddress(pool?.asset, `pools.${key}.asset`);
+      const native = key === "eth";
+      const assetAddress = requireAddress(asset?.address, `assets.${key}.address`, {
+        allowNative: native,
+      });
+      const poolAsset = requireAddress(pool?.asset, `pools.${key}.asset`, {
+        allowNative: native,
+      });
       if (assetAddress !== poolAsset) errors.push(`pools.${key}.asset mismatches asset registry`);
       requireAddress(pool?.pool, `pools.${key}.pool`);
     } catch (error) {

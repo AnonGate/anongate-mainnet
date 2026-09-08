@@ -3,15 +3,15 @@
  */
 export const HELP = {
   brand:
-    "AnonGate’s Absolute Privacy protocol Testnet is a non-custodial shielded pool. The app never keeps your note secrets in the browser after you leave — only you hold the Recovery Code (and password, if you set one).",
+    "AnonGate’s Absolute Privacy protocol is a non-custodial shielded pool. The app never keeps your note secrets in the browser after you leave — only you hold the Recovery Code (and password, if you set one).",
   connectWallet:
     "Connects MetaMask (or a compatible wallet) so you can approve tokens, deposit, and optionally send withdraws. Connecting does not give the app custody of your notes. Disconnect drops this site’s wallet permission so the next Connect can pick a different account.",
   networkSelect:
-    "Sepolia is the live test network (default). Ethereum mainnet is listed for later — pools are not published there yet.",
+    "Which Ethereum network this app talks to. Mainnet moves real funds. Sepolia is a test network with no real value.",
   assetPool:
-    "Which shielded pool to use (ETH, tDAI, or tLUSD on Sepolia). Notes belong to one pool — switch asset only when you intend to use that pool’s notes.",
+    "Which shielded pool to use. Notes belong to one pool — switch asset only when you intend to use that pool’s notes.",
   poolAddress:
-    "On-chain contract address of the selected pool. You can verify it against the published Sepolia registry.",
+    "On-chain contract address of the selected pool. Verify it against the published registry for this network.",
   inPool:
     "How many notes in this browser session are already deposited and bound to the current pool (ready to withdraw).",
   readyToDeposit:
@@ -59,7 +59,7 @@ export const HELP = {
   clearTab:
     "Empties this tab. Spent notes are already withdrawn. Notes you never deposited are not in the pool. Only money still in the pool needs a Recovery Code.",
   getTokens:
-    "Sepolia helpers: switch network, mint experimental tDAI/tLUSD, or fund native ETH. Not for Mainnet.",
+    "Mint Sepolia test tokens (tDAI / tLUSD) into your wallet, or switch the wallet to this network. ETH has no mint — fund it yourself.",
   mintAmount:
     "How many experimental test tokens to mint to your wallet (permissionless on Sepolia test tokens).",
 } as const;

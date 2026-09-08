@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveMainnetAsset } from "./mainnetRegistry.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const DEFAULT_SEPOLIA_REGISTRY = path.resolve(
@@ -51,8 +52,16 @@ export function resolveSepoliaAsset(asset, registryPath = DEFAULT_SEPOLIA_REGIST
 export function resolveSepoliaCommandArgs(args, { pool = false, token = false } = {}) {
   if (!args.asset) return args;
   const network = String(args.network ?? "sepolia").toLowerCase();
+  if (network === "mainnet") {
+    const resolved = resolveMainnetAsset(args.asset, args.registry);
+    if (pool && !args.pool && !args.to && !args.spender) args.pool = resolved.pool;
+    if (token && !args.token) args.token = resolved.token;
+    if (args.rpc === undefined || args.rpc === true) args.rpc = resolved.rpc;
+    args._resolvedMainnet = resolved;
+    return args;
+  }
   if (network !== "sepolia") {
-    throw new Error("--asset symbolic resolution currently supports only --network sepolia");
+    throw new Error("--network must be sepolia or mainnet");
   }
   const resolved = resolveSepoliaAsset(args.asset, args.registry);
   if (pool && !args.pool && !args.to && !args.spender) args.pool = resolved.pool;
