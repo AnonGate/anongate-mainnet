@@ -1682,7 +1682,7 @@ export function App() {
       }
       if (selectedPreset.native || selectedPreset.asset === ZERO_ADDR) {
         throw new Error(
-          "ETH is the native network currency — no mint. Fund your wallet with ETH, then Deposit."
+          "ETH is native — no mint. On Sepolia use a faucet, then Deposit."
         );
       }
       const amount = humanToBaseUnits(

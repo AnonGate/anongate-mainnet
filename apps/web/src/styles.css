@@ -1620,6 +1620,59 @@ code {
   gap: 1rem;
 }
 
+.faucet-block {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.faucet-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.faucet-link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-deep);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.faucet-link:hover,
+.faucet-link:focus-visible {
+  border-color: rgba(33, 201, 94, 0.4);
+  background: var(--accent-soft);
+  outline: none;
+}
+
+.faucet-link-name {
+  font-size: 0.92rem;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.faucet-link-hint {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.faucet-search {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--ink-dim);
+}
+
+.faucet-search strong {
+  color: var(--ink-soft);
+  font-weight: 650;
+}
+
 .step-card {
   position: relative;
   display: grid;
@@ -2674,8 +2727,16 @@ code {
   cursor: pointer;
 }
 
-.stage-lead .text-link:hover {
+.stage-lead .text-link:hover,
+.faq .a .text-link:hover {
   color: var(--ink);
+}
+
+.faq .a .text-link {
+  color: var(--accent);
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .faq-list {
@@ -2972,14 +3033,24 @@ details.faq .a {
 
 @media (min-width: 880px) {
   .foot-top {
-    flex-direction: row;
-    justify-content: space-between;
-    gap: 3rem;
+    display: grid;
+    grid-template-columns: minmax(17rem, 1.45fr) minmax(8.5rem, 1fr) minmax(8.5rem, 1fr);
+    align-items: start;
+    column-gap: 2.75rem;
+    row-gap: 0;
+  }
+
+  .foot-brand {
+    max-width: none;
+  }
+
+  .foot-cols {
+    display: contents;
   }
 }
 
 .foot-brand {
-  max-width: 22rem;
+  max-width: 26rem;
 }
 
 .foot-brand .brand-sm {
@@ -2997,12 +3068,6 @@ details.faq .a {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1.5rem 2rem;
-}
-
-@media (min-width: 720px) {
-  .foot-cols {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 }
 
 .foot-col-title {

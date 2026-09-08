@@ -63,7 +63,7 @@ export const PROTOCOL_FAQ: FaqItem[] = [
   },
   {
     q: "Is the code open source?",
-    a: "Yes. Contracts, circuits, web, CLI, and Python are in the AnonGate GitHub repositories. Ceremony transcripts are in anongate-ceremony. Pool addresses come from the public registries this app loads.",
+    a: "Yes. Contracts, circuits, web, CLI, and Python are on [GitHub](https://github.com/AnonGate) — [mainnet](https://github.com/AnonGate/anongate-mainnet) and [testnet](https://github.com/AnonGate/anongate-testnet). Ceremony transcripts are in [anongate-ceremony](https://github.com/AnonGate/anongate-ceremony). Pool addresses are loaded by this app from those repositories.",
   },
   {
     q: "What are Full, Partial, and Merge?",
@@ -71,7 +71,7 @@ export const PROTOCOL_FAQ: FaqItem[] = [
   },
   {
     q: "What does the protocol charge?",
-    a: "0.011% on deposit and 0.04% on withdraw, set in the contracts. Those fees go to the published fee address in the same transaction. Silent send adds a small gas tip from the note to that same address. Send via wallet: you pay Ethereum gas from the connected wallet; the 0.04% still comes from the note.",
+    a: "0.011% on deposit and 0.04% on withdraw, set in the contracts. Those fees go to the [published fee address](https://etherscan.io/address/0xbcDD1741f5c42066c34E80f8F25e21769028f621) in the same transaction. Silent send adds a small gas tip from the note to that same address. Send via wallet: you pay Ethereum gas from the connected wallet; the 0.04% still comes from the note.",
   },
   {
     q: "Which assets, and why not USDT or USDC?",
@@ -79,7 +79,7 @@ export const PROTOCOL_FAQ: FaqItem[] = [
   },
   {
     q: "Can you freeze or seize funds in the pool?",
-    a: "No. A valid proof with an unused nullifier pays out. There is no pause or seize key. If this website is down, the notes are still in the contract — you can withdraw with another client or your own broadcast.",
+    a: "No. A valid proof with an unused nullifier pays out. There is no pause or seize key. If this website is down, the notes are still in the contract — you can withdraw with another client from [GitHub](https://github.com/AnonGate) or your own broadcast.",
   },
   {
     q: "Is KYC required?",
@@ -87,10 +87,10 @@ export const PROTOCOL_FAQ: FaqItem[] = [
   },
   {
     q: "Mainnet or Sepolia?",
-    a: "Mainnet is real ETH, DAI, and LUSD. Sepolia is for practice (test ETH and mintable tDAI / tLUSD). Same Recovery Code format. Use different relayer keys on each network.",
+    a: "Mainnet is real ETH, DAI, and LUSD. Sepolia is for practice — get test ETH from a [Sepolia faucet](https://cloud.google.com/application/web3/faucet/ethereum/sepolia) and mint tDAI / tLUSD here. Same Recovery Code format. Use different relayer keys on each network.",
   },
   {
     q: "What is the difference vs AnonSwap?",
-    a: "This protocol is a shielded pool: you deposit an asset and withdraw the same asset. AnonSwap is the exchange: one coin in, another coin out, across chains. Two products. AnonSwap is at swap.anongate.io.",
+    a: "This protocol is a shielded pool: you deposit an asset and withdraw the same asset. AnonSwap is the exchange: one coin in, another coin out, across chains. Two products. Open [AnonSwap](https://swap.anongate.io) or the brand site [anongate.io](https://anongate.io).",
   },
 ];

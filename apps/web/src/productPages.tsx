@@ -39,6 +39,47 @@ function ActionPair(props: { children: ReactNode }) {
   return <span className="action-pair">{props.children}</span>;
 }
 
+const SEPOLIA_FAUCETS = [
+  {
+    href: "https://cloud.google.com/application/web3/faucet/ethereum/sepolia",
+    name: "Google Cloud",
+    hint: "Sign in and claim Sepolia ETH",
+  },
+  {
+    href: "https://sepolia-faucet.pk910.de/",
+    name: "PoW faucet",
+    hint: "Mine a little, then claim",
+  },
+] as const;
+
+function SepoliaEthFaucets() {
+  return (
+    <div className="faucet-block">
+      <p className="meta">
+        Native ETH has no mint. Get Sepolia ETH from a public faucet, then
+        Deposit.
+      </p>
+      <div className="faucet-list">
+        {SEPOLIA_FAUCETS.map((f) => (
+          <a
+            key={f.href}
+            className="faucet-link"
+            href={f.href}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <span className="faucet-link-name">{f.name}</span>
+            <span className="faucet-link-hint">{f.hint}</span>
+          </a>
+        ))}
+      </div>
+      <p className="faucet-search">
+        Or search <strong>Sepolia Faucet</strong> — many public ones exist.
+      </p>
+    </div>
+  );
+}
+
 function FooterSocials() {
   return (
     <span className="foot-socials">
@@ -66,6 +107,32 @@ function FooterSocials() {
       </a>
     </span>
   );
+}
+
+function FaqRichText(props: { text: string }) {
+  const nodes: ReactNode[] = [];
+  const re = /\[([^\]]+)\]\((https?:\/\/[^)\s]+|\/[^)\s]+)\)/g;
+  let last = 0;
+  let match: RegExpExecArray | null;
+  let key = 0;
+  while ((match = re.exec(props.text))) {
+    if (match.index > last) nodes.push(props.text.slice(last, match.index));
+    const href = match[2];
+    const external = href.startsWith("http");
+    nodes.push(
+      <a
+        key={`${href}-${key++}`}
+        className="text-link"
+        href={href}
+        {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
+      >
+        {match[1]}
+      </a>,
+    );
+    last = match.index + match[0].length;
+  }
+  if (last < props.text.length) nodes.push(props.text.slice(last));
+  return nodes;
 }
 
 function ExplorerLink(props: { href: string; label: string }) {
@@ -1089,7 +1156,9 @@ export function ProductShell(props: ProductUiProps) {
                       +
                     </span>
                   </summary>
-                  <div className="a">{item.a}</div>
+                  <div className="a">
+                    <FaqRichText text={item.a} />
+                  </div>
                 </details>
               ))}
             </div>
@@ -1109,7 +1178,7 @@ export function ProductShell(props: ProductUiProps) {
                     : "Mainnet DAI and LUSD are canonical tokens. There is no test mint. Transfer tokens to this wallet, then Deposit."
                   : props.poolOptions.find((p) => p.id === props.selectedPoolId)
                       ?.native
-                    ? "ETH uses native balance — no mint. Fund your wallet, then Deposit."
+                    ? "Sepolia ETH is native — no mint. Claim test ETH from a faucet, then Deposit."
                     : "Mint experimental test tokens, then Deposit. Always save your Recovery Code."}
               </p>
             </div>
@@ -1138,9 +1207,13 @@ export function ProductShell(props: ProductUiProps) {
               </div>
               {props.poolOptions.find((p) => p.id === props.selectedPoolId)
                 ?.native ? (
-                <p className="meta">
-                  Native ETH pool — deposit spends ETH from your wallet.
-                </p>
+                props.selectedNetwork === "sepolia" ? (
+                  <SepoliaEthFaucets />
+                ) : (
+                  <p className="meta">
+                    Native ETH pool — deposit spends ETH from your wallet.
+                  </p>
+                )
               ) : props.selectedNetwork === "mainnet" ? (
                 <>
                   <p className="meta">
@@ -1306,12 +1379,6 @@ export function ProductShell(props: ProductUiProps) {
                 <button type="button" className="foot-link" onClick={() => props.onPage("faq")}>
                   FAQ
                 </button>
-              </div>
-              <div>
-                <p className="foot-col-title">Notes</p>
-                <p className="foot-static">Recovery Code is primary</p>
-                <p className="foot-static">.apnote file optional</p>
-                <p className="foot-static">Prefer Silent send</p>
               </div>
               <div>
                 <p className="foot-col-title">Products</p>

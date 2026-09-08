@@ -59,7 +59,7 @@ export const HELP = {
   clearTab:
     "Empties this tab. Spent notes are already withdrawn. Notes you never deposited are not in the pool. Only money still in the pool needs a Recovery Code.",
   getTokens:
-    "Mint Sepolia test tokens (tDAI / tLUSD) into your wallet, or switch the wallet to this network. ETH has no mint — fund it yourself.",
+    "On Sepolia: mint tDAI / tLUSD here, or open a faucet for test ETH. Switch the wallet to this network first. Mainnet ETH has no mint.",
   mintAmount:
     "How many experimental test tokens to mint to your wallet (permissionless on Sepolia test tokens).",
   tabFaq:
