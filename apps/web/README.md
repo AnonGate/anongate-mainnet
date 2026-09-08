@@ -31,7 +31,7 @@ Requires the local relayer. With both networks running (`npm run start:both` in 
 
 | Selected network | Relayer URL |
 | --- | --- |
-| Sepolia | `http://127.0.0.1:8787` |
 | Mainnet | `http://127.0.0.1:8788` |
+| Sepolia | `http://127.0.0.1:8787` |
 
-Overrides: `VITE_RELAYER_URL_SEPOLIA` / `VITE_RELAYER_URL_MAINNET`. See [docs/ENVIRONMENT.md](../../docs/ENVIRONMENT.md).
+Overrides: `VITE_RELAYER_URL_MAINNET` / `VITE_RELAYER_URL_SEPOLIA`. See [docs/ENVIRONMENT.md](../../docs/ENVIRONMENT.md).

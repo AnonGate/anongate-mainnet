@@ -2,39 +2,42 @@
 
 Local helper that broadcasts **already-built withdraw calldata** so the user does not submit from their wallet.
 
-## Dual network (Sepolia + Mainnet at once)
+Prove in the client first. This service accepts only `{ chainId, to, data }` — never notes or Recovery Codes.
 
-Two processes, two keys, two ports — no switching:
+## Networks
 
-| Network | Env file | Port | Health |
-| --- | --- | --- | --- |
-| Sepolia | `.env.sepolia` | **8787** | http://127.0.0.1:8787/health |
-| Mainnet | `.env.mainnet` | **8788** | http://127.0.0.1:8788/health |
+| Network | Env file (gitignored) | Template | Port | Health |
+| --- | --- | --- | --- | --- |
+| **Ethereum mainnet** | `.env.mainnet` | [`.env.mainnet.example`](.env.mainnet.example) | **8788** | http://127.0.0.1:8788/health |
+| **Sepolia** | `.env.sepolia` | [`.env.sepolia.example`](.env.sepolia.example) | **8787** | http://127.0.0.1:8787/health |
+
+Use a **different** private key on each network. Never reuse deployer or fee-recipient keys.
+
+## Setup
 
 ```bash
-# fill RELAYER_PRIVATE_KEY in each file (different wallets)
-cp .env.example .env.sepolia   # then edit
-cp .env.example .env.mainnet   # then edit for mainnet fields
-
+cd packages/relayer
 npm install
+
+# Mainnet (real ETH for gas)
+cp .env.mainnet.example .env.mainnet
+# edit RELAYER_PRIVATE_KEY, then:
+npm run start:mainnet
+
+# Sepolia (optional / test)
+cp .env.sepolia.example .env.sepolia
+# edit RELAYER_PRIVATE_KEY, then:
+npm run start:sepolia
+
+# Both at once
 npm run start:both
 ```
 
-Or one network only:
+Index of templates: [`.env.example`](.env.example).
 
-```bash
-npm run start:sepolia
-npm run start:mainnet
-```
-
-The web app picks the URL from the selected network automatically.
+The web app selects the URL from the network switcher (Mainnet → 8788, Sepolia → 8787). Overrides: `VITE_RELAYER_URL_MAINNET` / `VITE_RELAYER_URL_SEPOLIA`.
 
 ## Rules
 
-- Prove in the client. Never POST notes, spending keys, or Recovery Codes.
-- API accepts only `{ chainId, to, data }`.
-- Never reuse the Sepolia key on mainnet. Never reuse deployer / fee recipient keys.
-
-On-chain withdraw fields (recipient, amount, nullifier) stay public — same as a self-broadcast withdraw.
-
-Override URLs in the web app with `VITE_RELAYER_URL_SEPOLIA` / `VITE_RELAYER_URL_MAINNET` if needed.
+- Never POST notes, spending keys, or Recovery Codes to this service.
+- On-chain withdraw fields (recipient, amount, nullifier) stay public — same as a self-broadcast withdraw.

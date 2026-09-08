@@ -31,7 +31,7 @@ function resolveEnvPath() {
   if (process.env.RELAYER_ENV_FILE) {
     return path.resolve(process.env.RELAYER_ENV_FILE);
   }
-  // Prefer network-specific files so Sepolia + Mainnet can run together.
+  // Prefer network-specific files. If both exist, require an explicit choice.
   const networkHint = String(process.env.RELAYER_NETWORK || "").toLowerCase();
   if (networkHint === "mainnet") {
     const p = path.resolve(ROOT, ".env.mainnet");
@@ -41,18 +41,29 @@ function resolveEnvPath() {
     const p = path.resolve(ROOT, ".env.sepolia");
     if (fs.existsSync(p)) return p;
   }
-  for (const name of [".env.sepolia", ".env.mainnet", ".env"]) {
-    const p = path.resolve(ROOT, name);
-    if (fs.existsSync(p)) return p;
+  const present = [".env.mainnet", ".env.sepolia", ".env"].filter((name) =>
+    fs.existsSync(path.resolve(ROOT, name))
+  );
+  if (present.length > 1) {
+    console.error(
+      `Multiple relayer env files found (${present.join(", ")}).\n` +
+        `Use: npm run start:mainnet | start:sepolia | start:both`
+    );
+    process.exit(1);
   }
-  return path.resolve(ROOT, ".env");
+  if (present.length === 1) {
+    return path.resolve(ROOT, present[0]);
+  }
+  return path.resolve(ROOT, ".env.mainnet");
 }
 
 function loadDotEnv(envPath) {
   if (!fs.existsSync(envPath)) {
     console.error(`Missing env file: ${envPath}`);
     console.error(
-      "Create packages/relayer/.env.sepolia and .env.mainnet (see .env.example)."
+      "Copy templates:\n" +
+        "  cp .env.mainnet.example .env.mainnet\n" +
+        "  cp .env.sepolia.example  .env.sepolia"
     );
     process.exit(1);
   }
@@ -78,15 +89,36 @@ const envPath = resolveEnvPath();
 loadDotEnv(envPath);
 
 const HOST = process.env.RELAYER_HOST || "127.0.0.1";
+const envBase = path.basename(envPath).toLowerCase();
+const inferredNetwork = envBase.includes("mainnet")
+  ? "mainnet"
+  : envBase.includes("sepolia")
+    ? "sepolia"
+    : "";
 const RELAYER_NETWORK = String(
-  process.env.RELAYER_NETWORK || "sepolia"
+  process.env.RELAYER_NETWORK || inferredNetwork || "mainnet"
 ).toLowerCase();
 if (RELAYER_NETWORK !== "sepolia" && RELAYER_NETWORK !== "mainnet") {
   console.error("RELAYER_NETWORK must be sepolia or mainnet");
   process.exit(1);
 }
+if (inferredNetwork && inferredNetwork !== RELAYER_NETWORK) {
+  console.error(
+    `Env file ${path.basename(envPath)} looks like ${inferredNetwork} but RELAYER_NETWORK=${RELAYER_NETWORK}`
+  );
+  process.exit(1);
+}
 const defaultPort = RELAYER_NETWORK === "mainnet" ? "8788" : "8787";
 const PORT = Number(process.env.RELAYER_PORT || defaultPort);
+if (
+  (RELAYER_NETWORK === "mainnet" && PORT === 8787) ||
+  (RELAYER_NETWORK === "sepolia" && PORT === 8788)
+) {
+  console.error(
+    `Port ${PORT} does not match RELAYER_NETWORK=${RELAYER_NETWORK} (expected ${defaultPort}).`
+  );
+  process.exit(1);
+}
 const CHAIN = RELAYER_NETWORK === "mainnet" ? mainnet : sepolia;
 const RPC =
   process.env.RELAYER_RPC ||
@@ -104,7 +136,7 @@ const CORS = (process.env.RELAYER_CORS_ORIGINS ||
 const pk = process.env.RELAYER_PRIVATE_KEY;
 if (!pk || !/^0x[0-9a-fA-F]{64}$/.test(pk)) {
   console.error(
-    `Set RELAYER_PRIVATE_KEY in ${path.basename(envPath)} (see .env.example). Use a dedicated hot wallet.`
+    `Set RELAYER_PRIVATE_KEY in ${path.basename(envPath)} (see .env.${RELAYER_NETWORK}.example). Use a dedicated hot wallet.`
   );
   process.exit(1);
 }

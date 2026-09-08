@@ -60,16 +60,16 @@ Two processes, two keys, two ports — no switching:
 
 ```bash
 cd packages/relayer
-cp .env.example .env.sepolia   # then edit
-cp .env.example .env.mainnet   # then edit (different key!)
+cp .env.mainnet.example .env.mainnet   # then edit — dedicated mainnet key
+cp .env.sepolia.example  .env.sepolia   # then edit — different Sepolia key
 npm install
 npm run start:both
 ```
 
 | Network | Env file | Port | Health |
 | --- | --- | --- | --- |
-| Sepolia | `.env.sepolia` | **8787** | http://127.0.0.1:8787/health |
 | Mainnet | `.env.mainnet` | **8788** | http://127.0.0.1:8788/health |
+| Sepolia | `.env.sepolia` | **8787** | http://127.0.0.1:8787/health |
 
 Use a **dedicated** hot wallet per network. Never reuse the deployer, fee recipient, or a Sepolia key on mainnet. Fund each with a little ETH for gas only.
 

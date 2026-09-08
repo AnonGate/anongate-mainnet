@@ -12,6 +12,8 @@ __pycache__/
 .env.*
 !.env.example
 !packages/relayer/.env.example
+!packages/relayer/.env.mainnet.example
+!packages/relayer/.env.sepolia.example
 packages/relayer/.env
 packages/relayer/.env.sepolia
 packages/relayer/.env.mainnet

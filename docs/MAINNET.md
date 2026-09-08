@@ -32,10 +32,8 @@ There is **no mint** on mainnet. Fund the wallet with real ETH / DAI / LUSD.
 
 ```bash
 cd packages/relayer
-# Create packages/relayer/.env.mainnet (see .env.example)
-# RELAYER_PRIVATE_KEY=0x…   # NEW hot wallet — not Sepolia, not deployer
-# RELAYER_NETWORK=mainnet
-# RELAYER_PORT=8788
+cp .env.mainnet.example .env.mainnet
+# edit RELAYER_PRIVATE_KEY — NEW hot wallet (not Sepolia, not deployer)
 npm install
 npm run start:mainnet
 # or both networks: npm run start:both

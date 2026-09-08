@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "Local Sepolia withdraw relayer — broadcasts client-built calldata only (no note secrets).",
+  "description": "Local Silent-send relayer (Mainnet + Sepolia) — broadcasts client-built calldata only (no note secrets).",
   "scripts": {
     "start": "node ./start-both.mjs",
     "start:both": "node ./start-both.mjs",

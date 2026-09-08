@@ -23,7 +23,7 @@ Obsolete earlier pools remain on-chain for old notes only. New deposits must use
 5. Deposit, then withdraw to a **different** address when you can.
 6. **Mint** tab mints tDAI / tLUSD. ETH must be funded from a faucet.
 
-Silent send needs the relayer on `127.0.0.1:8787` (`packages/relayer/.env.sepolia`) and a funded relayer key. For both networks at once: `npm run start:both`.
+Silent send needs the relayer on `127.0.0.1:8787` — copy `packages/relayer/.env.sepolia.example` → `.env.sepolia`, set a Sepolia-only key, then `npm run start:sepolia`. For both networks: `npm run start:both`.
 
 ## CLI
 
