@@ -92,12 +92,15 @@ See [`packages/cli/README.md`](packages/cli/README.md).
 ## Python client
 
 ```bash
+npm install --prefix packages/sdk-core && npm run build --prefix packages/sdk-core
+npm install --prefix packages/cli
 cd packages/python-client
 python -m venv .venv
 # Windows: .venv\Scripts\activate
 # Unix: source .venv/bin/activate
 pip install -e .
-# Commands wrap the Node CLI — same Sepolia / mainnet registries.
+python -m absolute_privacy sepolia status --asset eth --rpc
+python -m absolute_privacy mainnet status --asset eth --rpc
 ```
 
 See [`packages/python-client/README.md`](packages/python-client/README.md).

@@ -39,6 +39,10 @@ Keep `notes.json` and proof files out of git.
 
 ```bash
 node ./bin/ap.mjs mainnet status --asset eth --rpc
+
+# Same prove / build / send as Sepolia, with --network mainnet:
+node ./bin/ap.mjs send call --network mainnet --asset eth --call deposit_call.json --from 0xYourWallet --notes notes.json --note-index 0
+node ./bin/ap.mjs state fetch --network mainnet --asset eth --out public_state.json
 ```
 
-Uses `deployments/pools.mainnet.json` (`clientsUnlocked: true`). Same prove / build / send flow as Sepolia with `--network mainnet`. Real funds — prefer a dedicated wallet.
+Uses `deployments/pools.mainnet.json` (`clientsUnlocked: true`). Real funds — prefer a dedicated wallet.

@@ -10,7 +10,10 @@ class SepoliaRegistryTests(unittest.TestCase):
     def test_supported_assets_resolve_from_checked_in_registry(self) -> None:
         registry, _ = load_sepolia_registry()
         self.assertEqual(registry["chainId"], 11155111)
-        self.assertEqual(registry["status"], "deployed-depth20-ceremony-phase2-v1")
+        self.assertEqual(
+            registry["status"],
+            "deployed-depth20-ceremony-phase2-v1-etherscan-verified",
+        )
         for asset_id in ("eth", "dai", "lusd"):
             item = resolve_sepolia_asset(asset_id)
             self.assertEqual(item["id"], asset_id)

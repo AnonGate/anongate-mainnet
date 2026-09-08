@@ -173,7 +173,7 @@ Notes:
   - Multi-asset: separate pools for ETH / tDAI / tLUSD — same asset in/out only (docs/PROTOCOL.md).
   - Sepolia (11155111) experimental: --asset eth is native ETH (no mint). dai/lusd are permissionless test tokens.
   - No earliest timestamp or on-chain withdraw delay (WITHDRAW_TIMING_POLICY_V1.md).
-  - send / state fetch / scan refuse Ethereum mainnet until pools.mainnet.json sets clientsUnlocked.
+  - Mainnet send / state fetch require live pools.mainnet.json (clientsUnlocked true) or --allow-experimental-network.
   - Keep signing secrets outside command lines; unlocked local accounts may use --from.
   - backup / sealed disclosure use local argon2id + xchacha20-poly1305.
   - spend-note primary backup is binary .apnote (+ Recovery Code / QR); --json is legacy sealed JSON.
@@ -3193,7 +3193,8 @@ async function cmdStateBindNote(args) {
 async function cmdSendApprove(args) {
   const { resolveSepoliaCommandArgs } = await import("../lib/sepoliaRegistry.mjs");
   resolveSepoliaCommandArgs(args, { pool: true, token: true });
-  if (!args.spender && args._resolvedSepolia) args.spender = args._resolvedSepolia.pool;
+  const resolved = args._resolvedSepolia || args._resolvedMainnet;
+  if (!args.spender && resolved) args.spender = resolved.pool;
   if (!args.rpc) throw new Error("--rpc is required");
   if (!args.token) throw new Error("--token is required");
   if (!args.spender) throw new Error("--spender is required");
@@ -3232,7 +3233,8 @@ async function cmdSendApprove(args) {
 async function cmdSendCall(args) {
   const { resolveSepoliaCommandArgs } = await import("../lib/sepoliaRegistry.mjs");
   resolveSepoliaCommandArgs(args, { pool: true });
-  if (!args.to && args._resolvedSepolia) args.to = args._resolvedSepolia.pool;
+  const resolved = args._resolvedSepolia || args._resolvedMainnet;
+  if (!args.to && resolved) args.to = resolved.pool;
   if (!args.rpc) throw new Error("--rpc is required");
   if (!args.to) throw new Error("--to is required");
   if (!args.call) throw new Error("--call is required");

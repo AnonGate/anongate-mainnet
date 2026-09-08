@@ -1457,7 +1457,7 @@ export function App() {
         });
         if (!isActiveChainId(Number.parseInt(cid, 16))) {
           setOk(
-            `Connected ${shortHex(addr)}. Switch wallet to ${productNetwork.displayName} (chain ${productNetwork.chainId}) — use Mint → Switch wallet to network.`
+            `Connected ${shortHex(addr)}. Switch wallet to ${productNetwork.displayName} (chain ${productNetwork.chainId}).`
           );
         } else {
           setOk(`Connected ${shortHex(addr)} on ${productNetwork.displayName}.`);
@@ -1927,8 +1927,12 @@ export function App() {
         });
         const bal = BigInt(balRaw);
         if (bal < BigInt(amount)) {
+          const mintHint =
+            selectedNetwork === "sepolia"
+              ? ` Open Mint for more ${assetSymbol}, then retry Deposit.`
+              : ` Fund the wallet with ${assetSymbol}, then retry Deposit.`;
           throw new Error(
-            `Insufficient ${assetSymbol} balance: wallet has ${formatAssetAmount(bal, assetDecimals, assetSymbol)}, note needs ${formatAssetAmount(amount, assetDecimals, assetSymbol)}. Open Mint for more ${assetSymbol}, then retry Deposit.`
+            `Insufficient ${assetSymbol} balance: wallet has ${formatAssetAmount(bal, assetDecimals, assetSymbol)}, note needs ${formatAssetAmount(amount, assetDecimals, assetSymbol)}.${mintHint}`
           );
         }
         const approveData = encodeApproveCalldata({

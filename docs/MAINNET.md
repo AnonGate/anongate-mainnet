@@ -49,7 +49,13 @@ The web app posts Silent send to port **8788** when Mainnet is selected.
 node packages/cli/bin/ap.mjs mainnet status --asset eth --rpc
 ```
 
-Python wraps the same CLI; point it at the published mainnet registry the same way.
+Python wraps the same CLI:
+
+```bash
+python -m absolute_privacy mainnet status --asset eth --rpc
+```
+
+See [`packages/python-client/README.md`](../packages/python-client/README.md).
 
 ## Operator addresses (deploy / fees / relayer)
 

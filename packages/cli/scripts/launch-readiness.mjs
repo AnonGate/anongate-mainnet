@@ -298,7 +298,7 @@ function main() {
       "Docs: README, SECURITY, docs/PROTOCOL.md, docs/SEPOLIA.md",
     ],
     yourManualNext: manualSteps({ A, B, C }),
-    tip: "Mainnet clients stay locked until a dedicated deploy fills pools.mainnet.json and clientsUnlocked is set true.",
+    tip: "Mainnet is live with clientsUnlocked true — keep operator keys offline and fund Silent-send via packages/relayer/.env.mainnet.",
   };
   console.log(JSON.stringify(report, null, 2));
   if (!A.ok) process.exitCode = 1;

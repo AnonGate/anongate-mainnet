@@ -72,9 +72,18 @@ def _guard_rpc(args: argparse.Namespace, context: str) -> None:
     allow = bool(getattr(args, "allow_experimental_network", False)) or (
         "--allow-experimental-network" in sys.argv
     )
+    unlocked = False
+    try:
+        from .mainnet_registry import is_mainnet_registry_live, load_mainnet_registry
+
+        registry, _ = load_mainnet_registry()
+        unlocked = is_mainnet_registry_live(registry)
+    except Exception:
+        unlocked = False
     assert_experimental_network_allowed(
         args.rpc,
         allow_experimental_network=allow,
+        mainnet_clients_unlocked=unlocked,
         context=context,
     )
 
@@ -229,7 +238,7 @@ def cmd_note_suggest_split(args: argparse.Namespace) -> None:
 
 
 def cmd_note_distribute(args: argparse.Namespace) -> None:
-    from .notes import append_note, create_note, load_notes
+    from .note import append_note, create_note, load_notes
     from .privacy_warnings import (
         assess_amount_fingerprint,
         assess_deposit_burst,
@@ -952,7 +961,9 @@ def cmd_state_fetch(args: argparse.Namespace) -> None:
 
     resolve_sepolia_args(args, pool=True)
     if not args.rpc or not args.pool:
-        raise SystemExit("provide --rpc/--pool or --network sepolia --asset eth|dai|lusd")
+        raise SystemExit(
+            "provide --rpc/--pool or --network sepolia|mainnet --asset eth|dai|lusd"
+        )
     _guard_rpc(args, "state fetch")
     snap = fetch_public_pool_snapshot(args.rpc, args.pool, depth=args.depth)
     state = PublicPoolState(depth=int(snap["depth"]), commitments=list(snap["commitments"]))
@@ -1101,13 +1112,16 @@ def cmd_prove_transfer_dev(_args: argparse.Namespace) -> None:
 
 
 def cmd_send_approve(args: argparse.Namespace) -> None:
-    from .sepolia_registry import resolve_sepolia_args
+    from .sepolia_registry import resolve_sepolia_args, resolved_pool_entry
 
     resolve_sepolia_args(args, pool=True, token=True)
-    if getattr(args, "resolved_sepolia", None) and not args.spender:
-        args.spender = args.resolved_sepolia["pool"]
+    resolved = resolved_pool_entry(args)
+    if resolved and not args.spender:
+        args.spender = resolved["pool"]
     if not args.rpc or not args.token or not args.spender:
-        raise SystemExit("provide explicit addresses or --network sepolia --asset")
+        raise SystemExit(
+            "provide explicit addresses or --network sepolia|mainnet --asset"
+        )
     _guard_rpc(args, "send approve")
     data = encode_approve_calldata(spender=args.spender, amount=args.amount)
     result = send_calldata(
@@ -1121,13 +1135,14 @@ def cmd_send_approve(args: argparse.Namespace) -> None:
 
 
 def cmd_send_call(args: argparse.Namespace) -> None:
-    from .sepolia_registry import resolve_sepolia_args
+    from .sepolia_registry import resolve_sepolia_args, resolved_pool_entry
 
     resolve_sepolia_args(args, pool=True)
-    if getattr(args, "resolved_sepolia", None) and not args.to:
-        args.to = args.resolved_sepolia["pool"]
+    resolved = resolved_pool_entry(args)
+    if resolved and not args.to:
+        args.to = resolved["pool"]
     if not args.rpc or not args.to:
-        raise SystemExit("provide --rpc/--to or --network sepolia --asset")
+        raise SystemExit("provide --rpc/--to or --network sepolia|mainnet --asset")
     _guard_rpc(args, "send call")
     doc = json.loads(Path(args.call).read_text(encoding="utf-8"))
     data = encode_call_from_build_json(doc)
@@ -1135,7 +1150,6 @@ def cmd_send_call(args: argparse.Namespace) -> None:
     if getattr(args, "value", None) is not None:
         value = int(args.value)
     else:
-        resolved = getattr(args, "resolved_sepolia", None)
         native = bool(getattr(args, "native", False) or getattr(args, "native_eth", False))
         if resolved and resolved.get("source") == "native":
             native = True
@@ -1232,6 +1246,66 @@ def cmd_sepolia_mint_call(args: argparse.Namespace) -> None:
     if args.out:
         Path(args.out).write_text(json.dumps(payload, indent=2), encoding="utf-8")
     _print({"ok": True, "outPath": str(Path(args.out).resolve()) if args.out else None, **payload})
+
+
+def cmd_mainnet_status(args: argparse.Namespace) -> None:
+    from .eth_rpc import rpc
+    from .mainnet_registry import (
+        is_mainnet_registry_live,
+        load_mainnet_registry,
+        resolve_mainnet_asset,
+    )
+
+    registry, registry_path = load_mainnet_registry(args.registry)
+    selected = (
+        [resolve_mainnet_asset(args.asset, args.registry)]
+        if args.asset
+        else [
+            resolve_mainnet_asset(asset_id, args.registry)
+            for asset_id in registry["pools"]
+        ]
+    )
+    rpc_url = registry["rpc"] if args.rpc is True else args.rpc
+    rpc_chain_id = None
+    code = None
+    if rpc_url:
+        rpc_chain_id = int(rpc(rpc_url, "eth_chainId", []), 16)
+        code = {}
+        for item in selected:
+            token_addr = item["token"]
+            token_ok = (
+                True
+                if item.get("source") == "native"
+                or str(token_addr).lower()
+                in ("0x", "0x0000000000000000000000000000000000000000")
+                else rpc(rpc_url, "eth_getCode", [token_addr, "latest"]) != "0x"
+            )
+            code[item["id"]] = {
+                "pool": rpc(rpc_url, "eth_getCode", [item["pool"], "latest"]) != "0x",
+                "token": token_ok,
+            }
+    _print(
+        {
+            "ok": rpc_chain_id is None or rpc_chain_id == 1,
+            "network": "ethereum-mainnet",
+            "chainId": 1,
+            "rpcChainId": rpc_chain_id,
+            "status": registry["status"],
+            "clientsUnlocked": is_mainnet_registry_live(registry),
+            "registryPath": str(registry_path),
+            "assets": selected,
+            "code": code,
+            "warning": registry["warning"],
+            "topology": {
+                "deposit": "0-in/1-out with Groth16 deposit proof",
+                "withdraw1": "1-in/0-out full exit (product default)",
+                "withdraw": "2-in/0-out merge",
+                "withdrawPartial1": "1-in/1-out change; save the new Recovery Code",
+                "transfer": "removed from current mainnet pools",
+                "onChainWithdrawDelay": False,
+            },
+        }
+    )
 
 
 def cmd_backup_export(args: argparse.Namespace) -> None:
@@ -1582,6 +1656,20 @@ def build_parser() -> argparse.ArgumentParser:
     smint.add_argument("--out", default=None)
     smint.add_argument("--registry", default=None)
     smint.set_defaults(func=cmd_sepolia_mint_call)
+
+    mainnet = sub.add_parser("mainnet")
+    mainnet_sub = mainnet.add_subparsers(dest="action", required=True)
+    mstatus = mainnet_sub.add_parser("status")
+    mstatus.add_argument("--asset", choices=SEPOLIA_ASSET_CHOICES, default=None)
+    mstatus.add_argument(
+        "--rpc",
+        nargs="?",
+        const=True,
+        default=None,
+        help="optionally check registry addresses on-chain; omit URL for registry default",
+    )
+    mstatus.add_argument("--registry", default=None)
+    mstatus.set_defaults(func=cmd_mainnet_status)
 
     backup = sub.add_parser("backup")
     backup_sub = backup.add_subparsers(dest="action", required=True)

@@ -62,9 +62,13 @@ test("mainnet clients stay locked on the prepared registry", () => {
   }), true);
 });
 
-test("resolveMainnetAsset refuses weth and undeployed pools", () => {
+test("resolveMainnetAsset refuses weth and resolves live eth pool", () => {
   assert.throws(() => resolveMainnetAsset("weth"), /native ETH/);
-  assert.throws(() => resolveMainnetAsset("eth"), /not deployed/);
+  const eth = resolveMainnetAsset("eth");
+  assert.equal(eth.chainId, 1);
+  assert.equal(typeof eth.pool, "string");
+  assert.match(eth.pool, /^0x[0-9a-fA-F]{40}$/);
+  assert.equal(eth.clientsUnlocked, true);
 });
 
 test("checked-in mainnet registry is deployed and unlocked", () => {
