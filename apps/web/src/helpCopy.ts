@@ -62,6 +62,8 @@ export const HELP = {
     "Mint Sepolia test tokens (tDAI / tLUSD) into your wallet, or switch the wallet to this network. ETH has no mint — fund it yourself.",
   mintAmount:
     "How many experimental test tokens to mint to your wallet (permissionless on Sepolia test tokens).",
+  tabFaq:
+    "Answers about what the chain sees, Recovery Codes, Silent send, fees, and privacy habits. This origin does not store notes.",
 } as const;
 
 export type HelpKey = keyof typeof HELP;

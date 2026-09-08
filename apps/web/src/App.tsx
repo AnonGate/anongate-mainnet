@@ -108,7 +108,7 @@ import {
   shortTx,
 } from "./userNotice";
 import { shortHex } from "./guideLogic";
-import { getActiveNetwork, isActiveChainId, networkById, readStoredNetworkId, setActiveNetworkId, type ProductNetworkId } from "./networkConfig";
+import { isActiveChainId, networkById, readStoredNetworkId, setActiveNetworkId, type ProductNetworkId } from "./networkConfig";
 import { formatUserError } from "./formatUserError";
 import { ProductShell, type AppPage, type PoolOption } from "./productPages";
 import { AppDialogHost, snapshotSessionNotes, useAppDialogs } from "./AppDialog";
@@ -712,7 +712,7 @@ export function App() {
   }) {
     return showPrivacyWarnings(
       assessPracticalPrivacy({
-        commitmentCount: poolCount,
+        commitmentCount: poolCount ?? undefined,
         amount: params.amount,
         peerValues: peerValuesExcept(params.skipIndices),
         amountContext: "withdraw",

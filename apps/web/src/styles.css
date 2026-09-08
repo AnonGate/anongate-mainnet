@@ -29,7 +29,7 @@
 
 /* ------------------------------------------------------------------ */
 /*  Design tokens — Graphite & Signal Green                            */
-/*  Shared with AnonSwap (localhost:5173) and AnonGate.                */
+/*  Shared with AnonSwap (swap.anongate.io) and AnonGate.              */
 /* ------------------------------------------------------------------ */
 :root {
   --ink: #f5f5f5;
@@ -2661,6 +2661,84 @@ code {
   box-shadow: none;
 }
 
+.stage-lead .text-link {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.stage-lead .text-link:hover {
+  color: var(--ink);
+}
+
+.faq-list {
+  margin-top: 0.35rem;
+  display: grid;
+  gap: 0.55rem;
+}
+
+details.faq {
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(17, 17, 17, 0.55);
+  overflow: hidden;
+}
+
+details.faq[open] {
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--line));
+}
+
+details.faq summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.95rem 1.1rem;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 0.98rem;
+  color: var(--ink);
+}
+
+details.faq summary::-webkit-details-marker {
+  display: none;
+}
+
+details.faq summary .chev {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: var(--chip, #222);
+  color: var(--ink-dim);
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+details.faq[open] summary .chev {
+  transform: rotate(45deg);
+  color: var(--accent);
+}
+
+details.faq .a {
+  padding: 0 1.1rem 1.05rem;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  max-width: 46rem;
+  line-height: 1.55;
+}
+
 .privacy-field {
   display: none;
   position: absolute;
@@ -2979,6 +3057,37 @@ code {
 
 .foot-clean {
   color: var(--ink-soft);
+}
+
+.foot-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.foot-socials {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.foot-x {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 8px;
+  color: #6f6f6f;
+}
+
+.foot-x:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.foot-x svg {
+  width: 16px;
+  height: 16px;
 }
 
 @media (max-width: 720px) {

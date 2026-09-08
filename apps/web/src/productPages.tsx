@@ -9,8 +9,9 @@ import { NetworkSelect } from "./NetworkSelect";
 import { StatusToasts } from "./StatusToasts";
 import { PrivacyField } from "./PrivacyField";
 import { HelpTip, LabelWithHelp } from "./HelpTip";
+import { PROTOCOL_FAQ } from "./faqCopy";
 
-export type AppPage = "deposit" | "withdraw" | "recover" | "lab";
+export type AppPage = "deposit" | "withdraw" | "recover" | "lab" | "faq";
 
 export type PoolOption = {
   id: string;
@@ -36,6 +37,35 @@ function BrandMark() {
 
 function ActionPair(props: { children: ReactNode }) {
   return <span className="action-pair">{props.children}</span>;
+}
+
+function FooterSocials() {
+  return (
+    <span className="foot-socials">
+      <a
+        className="foot-x"
+        href="https://github.com/AnonGate"
+        target="_blank"
+        rel="noreferrer"
+        aria-label="GitHub"
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+          <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0022 12.017C22 6.484 17.523 2 12 2z" />
+        </svg>
+      </a>
+      <a
+        className="foot-x"
+        href="https://x.com/anongate_io"
+        target="_blank"
+        rel="noreferrer"
+        aria-label="X"
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.727-8.924L1.254 2.25H8.08l4.253 5.622L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77z" />
+        </svg>
+      </a>
+    </span>
+  );
 }
 
 function ExplorerLink(props: { href: string; label: string }) {
@@ -239,7 +269,7 @@ function RestoreNotesPanel(props: {
   return (
     <details
       className="fold-panel"
-      defaultOpen={Boolean(props.recoveryPaste.trim())}
+      open={Boolean(props.recoveryPaste.trim()) || undefined}
     >
       <summary
         onClick={(e) => {
@@ -500,15 +530,35 @@ export function ProductShell(props: ProductUiProps) {
         <div className="stage-inner">
           {props.page !== "lab" ? (
             <div className="stage-intro">
-              <p className="kicker">Shielded protocol</p>
+              <p className="kicker">
+                {props.page === "faq" ? "Questions" : "Shielded protocol"}
+              </p>
               <h2 className="stage-title">
-                Value in. <em>Identity out.</em>
+                {props.page === "faq" ? (
+                  <>
+                    Asked <em>honestly.</em>
+                  </>
+                ) : (
+                  <>
+                    Value in. <em>Identity out.</em>
+                  </>
+                )}
               </h2>
               <p className="stage-lead">
-                Deposit into a shared Merkle pool. Withdraw from a different
-                wallet. Notes never live on this origin — you hold the Recovery
-                Code.
+                {props.page === "faq" ? (
+                  <>
+                    What the chain sees, what it does not, and how withdraws
+                    work. No notes are stored on this origin.
+                  </>
+                ) : (
+                  <>
+                    Deposit into a shared Merkle pool. Withdraw from a different
+                    wallet. Notes never live on this origin — you hold the Recovery
+                    Code.
+                  </>
+                )}
               </p>
+              {props.page !== "faq" ? (
               <ul className="stage-stats">
                 <li>
                   <strong>ZK</strong>
@@ -523,6 +573,7 @@ export function ProductShell(props: ProductUiProps) {
                   <span>hold the Recovery Code</span>
                 </li>
               </ul>
+              ) : null}
             </div>
           ) : null}
 
@@ -566,7 +617,9 @@ export function ProductShell(props: ProductUiProps) {
       ) : null}
 
       <div className="workspace" key={`${props.page}:${props.selectedNetwork}`}>
-        {props.page !== "lab" ? <PoolBar {...props} /> : null}
+        {props.page !== "lab" && props.page !== "faq" ? (
+          <PoolBar {...props} />
+        ) : null}
 
         {props.page === "deposit" ? (
           <section className="section panel">
@@ -1016,6 +1069,33 @@ export function ProductShell(props: ProductUiProps) {
           </section>
         ) : null}
 
+        {props.page === "faq" ? (
+          <section className="section panel faq-panel">
+            <div className="page-head">
+              <h2>
+                FAQ <HelpTip tipKey="tabFaq" />
+              </h2>
+              <p>
+                Absolute Privacy on Ethereum. Answers below are about this
+                protocol — not AnonSwap quotes or custody.
+              </p>
+            </div>
+            <div className="faq-list">
+              {PROTOCOL_FAQ.map((item, i) => (
+                <details key={item.q} className="faq" open={i === 0}>
+                  <summary>
+                    {item.q}
+                    <span className="chev" aria-hidden>
+                      +
+                    </span>
+                  </summary>
+                  <div className="a">{item.a}</div>
+                </details>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         {props.page === "lab" ? (
           <section className="section panel">
             <div className="page-head">
@@ -1223,6 +1303,9 @@ export function ProductShell(props: ProductUiProps) {
                 <button type="button" className="foot-link" onClick={() => props.onPage("recover")}>
                   Recover
                 </button>
+                <button type="button" className="foot-link" onClick={() => props.onPage("faq")}>
+                  FAQ
+                </button>
               </div>
               <div>
                 <p className="foot-col-title">Notes</p>
@@ -1232,15 +1315,21 @@ export function ProductShell(props: ProductUiProps) {
               </div>
               <div>
                 <p className="foot-col-title">Products</p>
-                <a className="foot-link" href="http://localhost:5173">
+                <a className="foot-link" href="https://swap.anongate.io">
                   AnonSwap
+                </a>
+                <a className="foot-link" href="https://anongate.io">
+                  AnonGate
                 </a>
               </div>
             </div>
           </div>
           <div className="foot-bottom">
             <p>© {new Date().getFullYear()} AnonGate. All rights reserved.</p>
-            <p className="foot-clean">No analytics. No cookies. No third-party scripts.</p>
+            <div className="foot-meta">
+              <FooterSocials />
+              <p className="foot-clean">No analytics. No cookies. No third-party scripts.</p>
+            </div>
           </div>
         </div>
       </footer>
